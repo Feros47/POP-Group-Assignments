@@ -24,12 +24,12 @@ let rec size tree =
 /// <param name="acc">The initial accumulator value.</param>
 /// <param name="tree">The input binary tree.</param>
 /// <returns>The result of folding the tree using the provided function and accumulator.</returns>
-let rec fold (folder: 'b  *'a * 'b -> 'b) (state: 'b) (tree: BTree<'a>) : 'b =
+let rec fold (folder: 'b  *'a * 'b -> 'b) (acc: 'b) (tree: BTree<'a>) : 'b =
     match tree with
-        | Leaf -> state
+        | Leaf -> acc
         | Branch (l, v, r) ->
-            let leftResult = fold folder state l
-            let rightResult = fold folder state r
+            let leftResult = fold folder acc l
+            let rightResult = fold folder acc r
             folder (leftResult, v, rightResult)
 
 /// <summary>

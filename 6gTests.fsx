@@ -12,6 +12,7 @@ open BTree
 /// </summary>
 let testFastQueue () =
     // Property 1: Check if fromList and toList maintain the list.
+    printfn "FastQueue Tests: "
     let test_property1 =
         let xs = [1; 2; 3; 4]
         let q = fromList xs
@@ -73,6 +74,7 @@ let testFastQueue () =
 /// Test the BTree module.
 /// </summary>
 let testBTree () =
+    printfn "Binary Tree Tests: "
     // Tree
     let emptyTree = Leaf
     let t1 = Branch (Leaf, 1, Leaf)
@@ -83,32 +85,34 @@ let testBTree () =
 
     // Testing tree size function
     let testSize = size t5
-    printfn "Number of internal nodes in the tree: %d" testSize
-
+    if testSize = 7 then
+        printfn "Size Test Passed"
+    else 
+        printfn "Size Test Failed"
     // Testing fold function
     let emptyTreeFold =
         // Test 1: Fold on an empty tree should return the initial value.
         let result1 = folder 42 emptyTree
         if result1 = 42 then
-            printfn "Test 1 Passed"
+            printfn "Fold Test 1 Passed"
         else
-            printfn "Test 1 Failed"
+            printfn "Fold Test 1 Failed"
 
     let singleNodeTree =
         // Test 2: Fold on a tree with a single node should return the result of applying the function to that node.
         let result2 = folder 0 t1
         if result2 = 1 then
-            printfn "Test 2 Passed"
+            printfn "Fold Test 2 Passed"
         else
-            printfn "Test 2 Failed"
+            printfn "Fold Test 2 Failed"
 
     let multipleNodeTree =
         // Test 3: Fold on a tree with multiple nodes should accumulate correctly.
         let result3 = folder 0 t5
         if result3 = 7 then
-            printfn "Test 3 Passed"
+            printfn "Fold Test 3 Passed"
         else
-            printfn "Test 3 Failed"
+            printfn "Fold Test 3 Failed"
     ignore 0
 
 

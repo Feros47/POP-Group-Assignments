@@ -26,10 +26,10 @@ let neighbourValues ((cols, rows) : Size) (state: State<'a>) ((x,y) : Pos) : 'a 
     ] |> List.filter predicate )|> List.map (fun p -> state |> Map.find p)
 
 /// <summary>Given a size and a rule, construct an update function for a cellular automaton</summary>
-/// <param name="size">The size of the grid</param>
-/// <param name="rule">An update rule based on the current value of a cell and its Moore neighbourhood</param>
+/// <param name="fst settings">The size of the grid</param>
+/// <param name="snd settings">An update rule based on the current value of a cell and its Moore neighbourhood</param>
 /// <returns>An update-function capable of determining the next generation's values.</returns>
-let cellularAutomaton ((size, rule): Size * Rule<'a>) : Update<'a> =
+let cellularAutomaton (settings: Size * Rule<'a>) : Update<'a> =
     let update ((size, rule): Size * Rule<'a>) (state: State<'a>) : State<'a> =
         state |> Map.map (fun (pos : Pos) (value: 'a) -> neighbourValues size state pos |> rule value)
-    (size, rule) |> update
+    settings |> update

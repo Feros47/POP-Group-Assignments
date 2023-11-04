@@ -1,11 +1,31 @@
 #load "FastQueue.fs"
+#load "Cellular.fs"
 #load "BTree.fs"
+
+#r "nuget:DIKU.Canvas, 2.0.2"
+open Canvas
+open Color
 
 open FastQueue
 open BTree
+open Cellular
+
 /// <summary>
-/// This script includes tests for the FastQueue and BTree modules.
+/// This script includes tests for the FastQueue and BTree modules, as well as code for visualizing cellular automatons
 /// </summary>
+
+// Constants
+let gridSize = (15,15)
+let w,h = (fst gridSize * 25, snd gridSize * 25)
+let lineColor = grey
+let strokeWidth = 4.0
+let delay = None
+let initialState : State<bool> = // bool State with all fields set to false
+    [
+        for x in 0..(fst gridSize)-1 do
+            for y in 0..(snd gridSize)-1 do
+                (x,y)
+    ] |> List.map (fun pt -> (pt, false)) |> Map.ofList
 
 /// <summary>
 /// Test the FastQueue module.

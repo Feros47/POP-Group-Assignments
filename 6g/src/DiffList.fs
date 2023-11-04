@@ -1,9 +1,14 @@
 module DiffList
+open BTree
 
 type 'a dlist = 'a list -> 'a list
-type 'a BTree =
-    | Leaf
-    | Branch of 'a BTree * 'a * 'a BTree
+let fromList : 'a list -> 'a dlist = (@)
+let toList (dl : 'a dlist) : 'a list = dl []
+let nil : 'a dlist = fun ys -> ys   // = fromList []
+let cons (x : 'a, dl : 'a dlist) : 'a dlist =
+    fun ys -> x :: dl ys
+let append : 'a dlist -> 'a dlist -> 'a dlist = (<<)
+
 
 /// <summary>
 /// Performs an in-order traversal of a binary tree and returns a difference list.
@@ -23,6 +28,4 @@ let rec inorderD (tree: 'a BTree) : 'a dlist =
 /// </summary>
 /// <param name="tree">The input binary tree.</param>
 /// <returns>A list containing the in-order traversal result.</returns>
-let inorder (tree: 'a BTree) : 'a list =
-    let dlist = inorderD tree
-    dlist []
+let inorder = inorderD >> toList

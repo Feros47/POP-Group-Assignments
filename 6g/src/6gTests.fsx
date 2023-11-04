@@ -181,6 +181,7 @@ let testBTree () =
             printfn "Fold Test 3 Failed"
     ignore 0
 
+/// <summary>Test the DiffList implementation</summary>
 let testDiffList () =
     printfn "Test DiffList"
 

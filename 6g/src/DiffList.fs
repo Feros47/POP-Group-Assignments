@@ -28,4 +28,4 @@ let rec inorderD (tree: BTree<'a>) : 'a dlist =
 /// </summary>
 /// <param name="tree">The input binary tree.</param>
 /// <returns>A list containing the in-order traversal result.</returns>
-let inorder (tree : BTree<'a>) : 'a list = toList (inorderD tree)
+let inorder (tree: BTree<'a>) : 'a list = (toList << inorderD) tree

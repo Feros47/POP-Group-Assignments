@@ -86,9 +86,17 @@ let testBTree () =
     // Testing tree size function
     let testSize = size t5
     if testSize = 7 then
-        printfn "Size Test Passed"
+        printfn "Size Test 1 Passed"
     else 
-        printfn "Size Test Failed"
+        printfn "Size Test 1 Failed"
+
+    let testEmptySize = size emptyTree
+    if testEmptySize = 0 then
+        printfn "Size Test 2 Passed"
+    else 
+        printfn "Size Test 2 Failed"
+
+
     // Testing fold function
     let emptyTreeFold =
         // Test 1: Fold on an empty tree should return the initial value.

@@ -27,9 +27,7 @@ let inorder (tree: 'a BTree) : 'a list =
     let dlist = inorderD tree
     dlist []
 
-/// <summary>
-/// Test the DiffList module
-/// </summary>
+// Test the DiffList module
 (*
 let testDiffList () = 
     // Tree

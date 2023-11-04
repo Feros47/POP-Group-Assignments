@@ -181,8 +181,6 @@ let testBTree () =
             printfn "Fold Test 3 Failed"
     ignore 0
 
-//Test the DiffList Module
-open DiffList
 let testDiffList () =
     printfn "Test DiffList"
 

@@ -97,6 +97,17 @@ let testFastQueue () =
         | _ ->
             printfn "Property 5: Failed"
 
+    // Property 6: Check if fromList handles an empty input list correctly.
+    let test_property6 =
+        let l = []
+        let q = fromList l
+        let result = toList q
+        if result = [] then
+            printfn "Property 6: Passed"
+        else
+            printfn "Property 6: Failed"
+
+
     // For ikke at lave stack overflow er test_property4 lavet om til en funktion der skal køres separat.
     // Fjern "//"" fra koden på linje 62 for at køre testen.
     // test_property4 ()
@@ -117,18 +128,24 @@ let testBTree () =
     let t4 = Branch (t3, 4, t3)
     let t5 = Branch (t2, 5, t4)
 
-    // Testing tree size function
-    let testSize = size t5
-    if testSize = 7 then
+    let testEmptySize = size emptyTree
+    if testEmptySize = 0 then
         printfn "Size Test 1 Passed"
     else 
         printfn "Size Test 1 Failed"
 
-    let testEmptySize = size emptyTree
-    if testEmptySize = 0 then
+    let testSingleNodeSize = size t1
+    if testSingleNodeSize = 1 then 
         printfn "Size Test 2 Passed"
     else 
         printfn "Size Test 2 Failed"
+
+        // Testing tree size function
+    let testMultipleNodeSize = size t5
+    if testMultipleNodeSize = 7 then
+        printfn "Size Test 3 Passed"
+    else 
+        printfn "Size Test 3 Failed"
 
 
     // Testing fold function
@@ -157,6 +174,7 @@ let testBTree () =
             printfn "Fold Test 3 Failed"
     ignore 0
 
+//Test the DiffList Module
 open DiffList
 let testDiffList () =
     printfn "Test DiffList"

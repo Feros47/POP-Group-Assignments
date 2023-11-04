@@ -116,6 +116,15 @@ let testFastQueue () =
     ignore 0
 
 /// <summary>
+/// A folding function to calculate the size of a binary tree.
+/// </summary>
+/// <param name="acc">The initial accumulator value.</param>
+/// <param name="tree">The input binary tree.</param>
+/// <returns>The size of the binary tree as the result of folding the tree.
+let folder acc tree =
+    fold (fun (sizeLeft, x, sizeRight) -> sizeLeft + 1 + sizeRight) acc tree
+
+/// <summary>
 /// Test the BTree module.
 /// </summary>
 let testBTree () =

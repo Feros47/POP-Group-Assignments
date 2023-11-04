@@ -78,10 +78,10 @@ let testFastQueue () =
             printfn "Property 3: Failed"
 
     // Property 4: Check if dequeue on an emptyQueue results in None.
-    // For ikke at lave stack overflow er test_property4 lavet om til en funktion der skal køres separat.
-    // Fjern "//"" fra koden på linje 82 for at køre testen.
-    // test_property4 ()
-    let test_property4 () =
+    // Due to FastQueue performing infinite recursion when dequeueing from an empty list, this function is not run
+    // since it would never return. It is included since it is a required test for other queue implementations to adhere to.
+    printfn "Property 4: Failed"
+    let test_property4 ()  =
         let q = emptyQueue
         let result = dequeue q
         if result = None then

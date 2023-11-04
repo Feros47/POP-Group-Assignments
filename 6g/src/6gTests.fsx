@@ -27,6 +27,19 @@ let initialState : State<bool> = // bool State with all fields set to false
             for y in 0..(snd gridSize)-1 do
                 (x,y)
     ] |> List.map (fun pt -> (pt, false)) |> Map.ofList
+let gridLines : PrimitiveTree =
+    let vLines = [
+        for grid in 1..(fst gridSize)-1 do
+            let transformation = (float w / float (fst gridSize)) * float grid
+            yield [(transformation, 0.0); (transformation, float h)]
+    ]
+    let lines = vLines @ [
+        for grid in 1..(fst gridSize)-1 do
+            let transformation = (float h / float (fst gridSize)) * float grid
+            yield [(0.0, transformation); (float w, transformation)]
+    ]
+    lines |> List.fold (fun state coords -> onto state (piecewiseAffine lineColor strokeWidth coords)) emptyTree
+
 
 /// <summary>
 /// Test the FastQueue module.
@@ -175,6 +188,46 @@ let testDiffList () =
         printfn "DiffList Test 3 Failed"
 
 
+/// <summary>Update rule for Conway's game of life</summary>
+/// <param name="value">The current value of an arbitrary cell.</param>
+/// <param name="neighbours">The values of the cells in the cell's Moore neighbourhood</param>
+/// <returns>The value that the cell should have in the next generation</returns>
+let conwayRule (value: bool) (neighbours: List<bool>) : bool =
+    let aliveNeighbours = (neighbours |> List.filter (fun value -> value)).Length
+    (value && (aliveNeighbours = 2 || aliveNeighbours = 3)) || ((not value) && aliveNeighbours = 3)
+// Use Conway's rule to get an update function given the grid size.
+let updateFunction = cellularAutomaton (gridSize, conwayRule)
+
+/// <summary>Handle an IO-event. Update the state if space bar is pressed, or toggle a field if it's clicked.</summary>
+/// <param name="s">The current application state.</param>
+/// <param name="ev">The event.</param>
+/// <returns>Based on the event, either an updated state or None.</returns>
+let react (s:State<bool>) (ev: Event) : State<bool> option =
+    let fromScreenCoordinates (x: int,y: int) : Pos =
+        let (xTrans, yTrans) = (float w / (float (fst gridSize)), float h / (float (snd gridSize)))
+        (int (float x / xTrans), int (float y / yTrans))
+    match ev with
+        | MouseButtonDown (x,y) -> 
+            let pos = fromScreenCoordinates (x,y)
+            match (s |> Map.find pos) with
+                | false -> Some (s |> Map.change pos (fun _ -> Some true))
+                | true -> Some (s |> Map.change pos (fun _ -> Some false))
+        | Key ' ' ->
+            Some (updateFunction s)
+        | _ -> None
+
+/// <summary>Given a state, draw the grid.</summary>
+/// <param name="s">The current application state.</param>
+/// <returns>A picture representing the state.</returns>
+let draw (s : State<bool>) : Picture =
+    let makeBlackBox (gridX : int, gridY : int) : PrimitiveTree =
+        let (xTrans, yTrans) = (float w / (float (fst gridSize)), float h / (float (snd gridSize)))
+        (filledRectangle black (xTrans-2.0) (yTrans-2.0)) |> translate ((float gridX * xTrans)+2.0) ((float gridY * yTrans)+2.0)
+
+    let emptyGrid = (filledRectangle white (float w) (float h)) |> onto gridLines
+    let liveCells = s |> Map.filter (fun _ value -> value)
+    (liveCells |> Map.fold (fun st key _ -> onto (makeBlackBox key) st) emptyGrid) |> make
+
 /// <summary>
 /// The entry point of the program.
 /// </summary>
@@ -183,4 +236,7 @@ let main argv =
     testFastQueue ()
     testBTree ()
     testDiffList ()
+
+    // Render the cellular automaton.
+    interact "Conway's Game of Life" w h delay draw react initialState
     0 // Success

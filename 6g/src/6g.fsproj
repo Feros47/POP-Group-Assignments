@@ -6,8 +6,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="FastQueue.fs" />
-    <Compile Include="BTree.fs" />
     <Compile Include="DiffList.fs" />
+    <Compile Include="BTree.fs" />
     <Compile Include="Cellular.fsi" />
     <Compile Include="Cellular.fs" />
     <Compile Include="6gTests.fsx" />

@@ -1,4 +1,5 @@
 module BTree
+open DiffList
 
 /// <summary>
 /// Represents a binary tree data structure.
@@ -31,3 +32,23 @@ let rec fold (folder: 'b  *'a * 'b -> 'b) (acc: 'b) (tree: BTree<'a>) : 'b =
             let leftResult = fold folder acc l
             let rightResult = fold folder acc r
             folder (leftResult, v, rightResult)
+
+/// <summary>
+/// Performs an in-order traversal of a binary tree and returns a difference list.
+/// </summary>
+/// <param name="tree">The input binary tree.</param>
+/// <returns>A difference list representing the in-order traversal result.</returns>
+let rec inorderD (tree: BTree<'a>) : 'a dlist =
+    match tree with
+    | Leaf -> nil
+    | Branch (left, value, right) ->
+        let leftD = inorderD left
+        let rightD = inorderD right
+        leftD << (fun ys -> value :: rightD ys)
+
+/// <summary>
+/// Performs an in-order traversal of a binary tree and returns the result as a list.
+/// </summary>
+/// <param name="tree">The input binary tree.</param>
+/// <returns>A list containing the in-order traversal result.</returns>
+let inorder (tree: BTree<'a>) : 'a list = (toList << inorderD) tree

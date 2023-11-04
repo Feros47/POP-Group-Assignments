@@ -78,6 +78,9 @@ let testFastQueue () =
             printfn "Property 3: Failed"
 
     // Property 4: Check if dequeue on an emptyQueue results in None.
+    // For ikke at lave stack overflow er test_property4 lavet om til en funktion der skal køres separat.
+    // Fjern "//"" fra koden på linje 82 for at køre testen.
+    // test_property4 ()
     let test_property4 () =
         let q = emptyQueue
         let result = dequeue q
@@ -106,11 +109,6 @@ let testFastQueue () =
             printfn "Property 6: Passed"
         else
             printfn "Property 6: Failed"
-
-
-    // For ikke at lave stack overflow er test_property4 lavet om til en funktion der skal køres separat.
-    // Fjern "//"" fra koden på linje 62 for at køre testen.
-    // test_property4 ()
 
     // Ignorer resultatet for at fjerne warnings, det er dovent men det virker.
     ignore 0

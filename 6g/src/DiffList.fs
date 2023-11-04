@@ -15,17 +15,19 @@ let append : 'a dlist -> 'a dlist -> 'a dlist = (<<)
 /// </summary>
 /// <param name="tree">The input binary tree.</param>
 /// <returns>A difference list representing the in-order traversal result.</returns>
-let rec inorderD (tree: 'a BTree) : 'a dlist =
+let rec inorderD (tree: BTree<'a>) : 'a dlist =
     match tree with
-    | Leaf -> fun xs -> xs
+    | Leaf -> nil
     | Branch (left, value, right) ->
-        let rec leftTraversal = inorderD left
-        let rightTraversal = inorderD right
-        fun xs -> leftTraversal (value :: rightTraversal xs)
+        let leftD = inorderD left
+        let rightD = inorderD right
+        leftD << (fun ys -> value :: rightD ys)
 
 /// <summary>
 /// Performs an in-order traversal of a binary tree and returns the result as a list.
 /// </summary>
 /// <param name="tree">The input binary tree.</param>
 /// <returns>A list containing the in-order traversal result.</returns>
-let inorder = inorderD >> toList
+let inorder tree : 'a list =
+    let dlist = inorderD tree
+    dlist []

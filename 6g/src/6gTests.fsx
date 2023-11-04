@@ -1,6 +1,7 @@
 #load "FastQueue.fs"
 #load "Cellular.fs"
 #load "BTree.fs"
+#load "DiffList.fs"
 
 #r "nuget:DIKU.Canvas, 2.0.2"
 open Canvas
@@ -143,6 +144,36 @@ let testBTree () =
             printfn "Fold Test 3 Failed"
     ignore 0
 
+open DiffList
+let testDiffList () =
+    printfn "Test DiffList"
+
+    // Tree
+    let emptyTree = Leaf
+    let t1 = Branch (Leaf, 1, Leaf)
+    let t2 = Branch (t1, 2, t1)
+    let t3 = Branch (Leaf, 3, Leaf)
+    let t4 = Branch (t3, 4, t3)
+    let t5 = Branch (t2, 5, t4)
+
+    let result = inorder emptyTree
+    if result = [] then 
+        printfn "DiffList Test 1 passed"
+    else 
+        printfn "DiffList Test 1 Failed"
+
+    let result2 = inorder t1
+    if result2 =[1] then
+        printfn "DiffList Test 2 Passed"
+    else 
+        printfn "DiffList Test 2 Failed"
+
+    let result3 = inorder t5
+    if result3 = [1; 2; 1; 5; 3; 4; 3] then
+        printfn "DiffList Test 3 Passed"
+    else 
+        printfn "DiffList Test 3 Failed"
+
 
 /// <summary>
 /// The entry point of the program.
@@ -151,4 +182,5 @@ let testBTree () =
 let main argv =
     testFastQueue ()
     testBTree ()
+    testDiffList ()
     0 // Success

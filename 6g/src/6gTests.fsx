@@ -12,7 +12,7 @@ open BTree
 open Cellular
 
 /// <summary>
-/// This script includes tests for the FastQueue and BTree modules, as well as code for visualizing cellular automatons
+/// This script includes tests for the FastQueue, BTree and DiffList modules, as well as code for visualizing cellular automatons
 /// </summary>
 
 // Constants

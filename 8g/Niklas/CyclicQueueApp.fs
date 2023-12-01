@@ -33,14 +33,31 @@ let testQueueToString () =
     assert (enqueue 2)
     assert (toString () = "1, 2")
 
+let runTests () =
+    let mutable allTestsPassed = true
+
+    let testAndReport testName testFunction =
+        try
+            testFunction ()
+            printfn "%s: Passed" testName
+        with
+        | _ ->
+            printfn "%s: Failed" testName
+            allTestsPassed <- false
+
+    testAndReport "testCreateAndIsEmpty" testCreateAndIsEmpty
+    testAndReport "testEnqueueAndDequeue" testEnqueueAndDequeue
+    testAndReport "testFullQueue" testFullQueue
+    testAndReport "testEmptyQueueDequeue" testEmptyQueueDequeue
+    testAndReport "testQueueLength" testQueueLength
+    testAndReport "testQueueToString" testQueueToString
+
+    if allTestsPassed then
+        printfn "All tests passed."
+    else
+        printfn "Some tests failed."
+
 [<EntryPoint>]
 let main argv =
-    testCreateAndIsEmpty ()
-    testEnqueueAndDequeue ()
-    testFullQueue ()
-    testEmptyQueueDequeue ()
-    testQueueLength ()
-    testQueueToString ()
-    printfn "All tests passed."
+    runTests ()
     0  // Exit status
-

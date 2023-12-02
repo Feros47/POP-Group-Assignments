@@ -45,15 +45,18 @@ let enqueue (e: Value) : bool =
             q.[last.Value] <- Some e
         true
 
-
 let dequeue () : Value option =
     if not (isValidState ()) then
         None
-    elif first = None || first.Value = (nextIndex last.Value) then
+    elif first = None then  // Queue is empty
         None
     else
         let tmp = q.[first.Value]
-        first <- Some (nextIndex first.Value)
+        if first.Value = last.Value then  // Only one element was in the queue
+            first <- None
+            last <- None
+        else
+            first <- Some (nextIndex first.Value)
         tmp
 
 let isEmpty () : bool =

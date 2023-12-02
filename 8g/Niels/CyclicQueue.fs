@@ -55,7 +55,7 @@ let enqueue (e: Value) : bool =
 
 let dequeue () : Value option =
     if not (isValidState ()) then
-        failwith "invalid operation: Cannot dequeue from a non-initialized queue."
+        None
     elif first = None || first.Value = (nextIndex last.Value) then
         None
     else

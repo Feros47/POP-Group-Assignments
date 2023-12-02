@@ -1,5 +1,9 @@
 open CyclicQueue
 
+
+let testExceptionHandling() =
+    assert (dequeue () = None)
+
 let testCreateAndIsEmpty () =
     create 5
     assert (isEmpty ())
@@ -45,6 +49,7 @@ let runTests () =
             printfn "%s: Failed" testName
             allTestsPassed <- false
 
+    testAndReport "testExceptionHandling" testExceptionHandling
     testAndReport "testCreateAndIsEmpty" testCreateAndIsEmpty
     testAndReport "testEnqueueAndDequeue" testEnqueueAndDequeue
     testAndReport "testFullQueue" testFullQueue

@@ -11,7 +11,7 @@ let mutable q : Value option[] = [||]
 /// <summary>Calculate the next value, cycling over the array</summary>
 /// <param name="x">The index</param>
 /// <returns>The next value in [0..q.Length - 1]</returns>
-let nextIndex (x: int) : int =
+let private nextIndex (x: int) : int =
     if x >= q.Length - 1 then
         0
     elif x < 0 then
@@ -21,8 +21,7 @@ let nextIndex (x: int) : int =
 
 /// <summary>Helper function to check state validity.</summary>
 /// <returns>True if state is valid, false otherwise</returns>
-let isValidState () : bool =
-    (*last <> None && first <> None &&*) q.Length > 0
+let private isValidState () : bool = q.Length > 0
 
 let private isFull () : bool =
     last <> None && first <> None && first = Some (nextIndex (last.Value))
@@ -61,12 +60,6 @@ let dequeue () : Value option =
         let tmp = q.[first.Value]
         first <- Some (nextIndex first.Value)
         tmp
-    (*elif first.Value = last.Value then
-        None
-    else
-        let tmp = q.[first.Value]
-        first <- Some (nextIndex first.Value)
-        tmp*)
 
 let isEmpty () : bool =
     not (isValidState ()) || (first = None && last = None) || first.Value = last.Value

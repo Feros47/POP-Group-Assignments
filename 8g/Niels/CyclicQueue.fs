@@ -24,7 +24,7 @@ let nextIndex (x: int) : int =
 let isValidState () : bool =
     (*last <> None && first <> None &&*) q.Length > 0
 
-let isFull () : bool =
+let private isFull () : bool =
     last <> None && first <> None && first = Some (nextIndex (last.Value))
 
 let create (n: int) : unit =

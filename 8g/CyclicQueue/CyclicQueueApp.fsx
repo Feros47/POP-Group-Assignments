@@ -1,3 +1,4 @@
+#load "CyclicQueue.fs"
 open CyclicQueue
 
 

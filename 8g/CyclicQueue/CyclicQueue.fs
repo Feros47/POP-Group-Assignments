@@ -27,14 +27,9 @@ let private isFull () : bool =
     last <> None && first <> None && first = Some (nextIndex (last.Value))
 
 let create (n: int) : unit =
-    if n <= 0 then
-        failwith "invalid argument: cannot create queue with nonpositive size"
-    else
-        // Reset first and last in case the queue already exists.
-        first <- None
-        last <- None
-        q <- Array.create n None
-
+    first <- None
+    last <- None
+    q <- Array.create (Math.Max (n,0)) None
   
 let enqueue (e: Value) : bool =
     // Check for overflows

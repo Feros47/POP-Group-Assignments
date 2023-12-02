@@ -22,55 +22,69 @@ let nextIndex (x: int) : int =
 /// <summary>Helper function to check state validity.</summary>
 /// <returns>True if state is valid, false otherwise</returns>
 let isValidState () : bool =
-    last <> None && first <> None && q.Length > 0
+    (*last <> None && first <> None &&*) q.Length > 0
+
+let isFull () : bool =
+    last <> None && first <> None && first = Some (nextIndex (last.Value))
 
 let create (n: int) : unit =
     if n <= 0 then
         failwith "invalid argument: cannot create queue with nonpositive size"
     else
         // Reset first and last in case the queue already exists.
-        first <- Some 0
-        last <- Some 0
+        first <- None
+        last <- None
         q <- Array.create n None
 
   
 let enqueue (e: Value) : bool =
     // Check for overflows
-    if not (isValidState ()) || ((nextIndex last.Value) = first.Value) then
+    if not (isValidState ()) || (isFull ()) then
         false
     else
-        last <- Some (nextIndex last.Value)
-        q.[last.Value] <- Some e
+        if last = None then // Freshly initialized queue.
+            first <- Some 0
+            last <- Some 0
+            q.[last.Value] <- Some e
+        else
+            last <- Some (nextIndex last.Value)
+            q.[last.Value] <- Some e
         true
 
 
 let dequeue () : Value option =
     if not (isValidState ()) then
         failwith "invalid operation: Cannot dequeue from a non-initialized queue."
-    elif first.Value = last.Value then
+    elif first = None || first.Value = (nextIndex last.Value) then
         None
     else
         let tmp = q.[first.Value]
         first <- Some (nextIndex first.Value)
         tmp
+    (*elif first.Value = last.Value then
+        None
+    else
+        let tmp = q.[first.Value]
+        first <- Some (nextIndex first.Value)
+        tmp*)
 
 let isEmpty () : bool =
-    not (isValidState ()) || first.Value = last.Value
+    not (isValidState ()) || (first = None && last = None) || first.Value = last.Value
 
 
 let length () : int =
-    if not (isValidState()) then
+    if not (isValidState()) || (first = None && last = None) then
         0
     else
-        Math.Abs (last.Value - first.Value)
+        (Math.Abs (last.Value - first.Value)) + 1
 
 let toString () : string =
-    if not (isValidState ()) then
+    if isEmpty () then
         ""
     else
         let mutable i : int = first.Value
         let mutable s : string = ""
-        while i <> last.Value do
-            s <- s + (string q.[i])
+        while i <> nextIndex last.Value do
+            s <- s + (string q.[i].Value + ", ")
             i <- nextIndex i
-        s
+        s[0..s.Length - 3]

@@ -59,9 +59,7 @@ let dequeue () : Value option =
             first <- Some (nextIndex first.Value)
         tmp
 
-let isEmpty () : bool =
-    not (isValidState ()) || (first = None && last = None) || first.Value = last.Value
-
+let isEmpty () : bool = first = None
 
 let length () : int =
     if not (isValidState()) || (first = None && last = None) then

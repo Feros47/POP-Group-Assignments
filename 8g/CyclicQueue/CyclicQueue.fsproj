@@ -8,7 +8,7 @@
   <ItemGroup>
     <Compile Include="CyclicQueue.fsi" />	
     <Compile Include="CyclicQueue.fs" />
-    <Compile Include="CyclicQueueApp.fs" />
+    <Compile Include="CyclicQueueApp.fsx" />
   </ItemGroup>
 
 </Project>

@@ -11,7 +11,7 @@ let create n =
     first <- None
     last <- None
 
-let private isFull () =
+let isFull () =
     match first, last with
     | Some f, Some l -> (l + 1) % Array.length q = f
     | _ -> false

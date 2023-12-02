@@ -3,6 +3,10 @@ open CyclicQueue
 
 let testExceptionHandling() =
     assert (dequeue () = None)
+    assert (not (enqueue 1))
+    assert (isEmpty())
+    assert (length() = 0)
+    assert (toString() = "")
 
 let testCreateAndIsEmpty () =
     create 5

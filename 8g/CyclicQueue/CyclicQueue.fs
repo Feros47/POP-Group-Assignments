@@ -23,8 +23,6 @@ let private nextIndex (x: int) : int =
 /// <returns>True if state is valid, false otherwise</returns>
 let private isValidState () : bool = q.Length > 0
 
-/// <summary>Determine if the queue is full</summary>
-/// <returns>true if the queue is full</returns>
 let private isFull () : bool =
     last <> None && first <> None && first = Some (nextIndex (last.Value))
 

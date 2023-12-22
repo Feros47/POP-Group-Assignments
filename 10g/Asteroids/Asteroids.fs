@@ -102,14 +102,16 @@ type Bullet(pos : vec, vel : vec) =
 
     override this.RenderInternal () : (PrimitiveTree * vec) =
         ([(0.0,0.0);
-        (6.0,0.0);
-        (6.0,1.0);
-        (7.0,1.0);
-        (7.0,2.0);
-        (6.0,2.0);
-        (6.0,3.0);
-        (0.0,3.0);]
-        |> filledPolygon limeGreen, (0.0,0.0))
+        (10.0,0.0);
+        (10.0,1.0);
+        (11.0,1.0);
+        (11.0,3.0);
+        (10.0,3.0);
+        (10.0,4.0);
+        (0.0,4.0);]
+        |> filledPolygon limeGreen
+        |> translate -5.0 -2.0, (5.0,2.0))
+
 
 [<Sealed>]
 type Spaceship(pos : vec, vel : vec) =

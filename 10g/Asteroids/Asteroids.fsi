@@ -25,6 +25,7 @@ type Entity =
 [<Sealed>]
 type Asteroid =
     class
+        new : vec * vec * float -> Asteroid
         inherit Entity
     end
 [<Sealed>]

@@ -12,32 +12,46 @@ type Rotation = Clockwise | CounterClockwise
 /// <returns>(x,y) multiplied by a</returns>
 let multiply ((x,y) : vec) (a : float) : vec =
     (x*a, y*a)
-
 /// <summary>Add two vectors.</summary>
 /// <param name="(x1,y1)">First vector</param>
 /// <param name="(x2,y2)">Second vector</param>
 /// <returns>A new vector representing a + b</returns>
 let add ((x1,y1) : vec) ((x2,y2) : vec) : vec =
-    (x1+y1, x2+y2)
-
+    (x1+x2, y1+y2)
 /// <summary>Computes the length of a vector</summary>
 /// <param name="(x,y)">The vector</param>
 /// <returns>A floating point value indicating the vector's length</returns>
 let length ((x,y) : vec) : float =
     Math.Sqrt (x**2.0 + y**2.0)
-
 /// <summary>Given a vector, determine its unit vector</summary>
 /// <param name="(x,y)">The vector</param>
 /// <returns>A new vector with the same direction but with a length of 1.0</returns>
 let unit ((x,y) : vec) : vec =
     let length = length (x,y)
     (x / length, y / length)
-
 /// <summary>Calculate the rotation of a vector from 0 deg around its base</summary>
 /// <param name="(x,y)">The vector in question</param>
 /// <returns>An angle in radians.</returns>
 let rotation ((x,y): vec) : float =
     atan2 y x
+/// <summary>Determine the shortest of two vectors</summary>
+/// <param name="v1">The first vector</param>
+/// <param name="v2">The second vector</param>
+/// <returns>The shortest of the two vectors.</returns>
+let min (v1: vec) (v2 : vec) : vec =
+    if (length v1) <= (length v2) then
+        v1
+    else
+        v2
+/// <summary>
+/// Given a vector and an angle, rotate the vector.
+/// </summary>
+/// <param name="v">The vector to rotate</param>
+/// <param name="rad">The angle in radians (0.0 .. 2.0)</param>
+/// <returns>The rotated vector</returns>
+let vectorRotate (v : vec) (rad : float) : vec =
+    (fst v * Math.Cos(Math.PI * rad) - snd v * Math.Sin(Math.PI * rad)),
+    (fst v * Math.Sin(Math.PI * rad) + snd v * Math.Cos(Math.PI * rad))
 
 [<Interface>]
 type IRenderable =
@@ -114,14 +128,24 @@ type Bullet(pos : vec, vel : vec) =
 
 
 [<Sealed>]
-type Spaceship(pos : vec, vel : vec) =
+type Spaceship(pos : vec, vel : vec, acc : float) =
     inherit Entity(pos, vel, 8)
-    member this.Rotate (r : Rotation) = ()
-    member this.MakeBullet () = new Bullet((0.0,0.0), (0.0,0.0))
-    member this.Accelerate () = ()
+    let _acceleration: float = acc
+    member this.Rotate (r : Rotation) =
+        let radIncrement = 0.05
+        match r with
+            Clockwise -> this.Velocity <- (vectorRotate this.Velocity radIncrement)
+            | _ -> this.Velocity <- (vectorRotate this.Velocity -radIncrement)
+    member this.MakeBullet () =
+        let spaceshipTip = add this.Position (multiply (unit this.Velocity) 30.0)
+        new Bullet(spaceshipTip, unit this.Velocity)
+    member this.Accelerate (interval: float) =
+        let maxVelocity = multiply (unit this.Velocity) 20.0
+        let deltaVelocity = multiply this.Velocity (interval * _acceleration)
+        let newVelocity = add this.Velocity deltaVelocity
+        this.Velocity <- min maxVelocity newVelocity
     override this.RenderInternal () : (PrimitiveTree * vec) =
-        ([(0.0,0.0);
+        (([(0.0,0.0);
         (38.0,11.0);
         (0.0,22.0)] 
-        |> filledPolygon red
-        |> translate -8.0 -11.0, (8.0, 11.0))
+        |> filledPolygon red |> translate -8.0 -11.0), (8.0, 11.0))

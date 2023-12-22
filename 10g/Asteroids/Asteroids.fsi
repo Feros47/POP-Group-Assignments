@@ -2,7 +2,7 @@ module Asteroids
 open Canvas
 
 type vec = float * float
-type Rotation
+type Rotation = Clockwise | CounterClockwise
 
 
 [<Interface>]
@@ -39,8 +39,14 @@ type Bullet =
 type Spaceship =
     class
         inherit Entity
-        new : vec * vec -> Spaceship
+        new : vec * vec * float -> Spaceship
         member Rotate : Rotation -> unit
         member MakeBullet : unit -> Bullet
-        member Accelerate : unit -> unit
+        member Accelerate : float -> unit
     end
+
+(*[<Sealed>]
+type GameState =
+    class   
+        interface IRenderable
+    end*)

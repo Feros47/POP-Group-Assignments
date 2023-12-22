@@ -140,7 +140,8 @@ type Asteroid(pos : vec, vel : vec, r : float) =
 
 [<Sealed>]
 type Bullet(pos : vec, vel : vec) =
-    inherit Entity(pos, multiply (unit vel) 20.0, 2.0)
+    // We assume that the 20u_j in the specification refers to muzzle velocity of the bullet and not absolute velocity.
+    inherit Entity(pos, add vel (multiply (unit vel) 20.0), 2.0)
     let _created = DateTime.Now
     member this.Created with get () = _created
 
@@ -178,7 +179,10 @@ type Spaceship(pos : vec, orient : vec, acc : float) =
             | _ -> this.Direction <- (vectorRotate this.Direction -radIncrement)
     member this.MakeBullet () =
         let spaceshipTip = add this.Position (multiply (unit this.Direction) 30.0)
-        new Bullet(spaceshipTip, unit this.Direction)
+        if length this.Velocity <= 0 then
+            new Bullet(spaceshipTip, this.Direction)
+        else
+            new Bullet(spaceshipTip, this.Velocity)
     member this.Accelerate (interval: float) =
         let maxVelocity = multiply (unit this.Direction) 20.0
         let deltaVelocity = multiply this.Direction (interval * _acceleration)
@@ -196,10 +200,10 @@ type Spaceship(pos : vec, orient : vec, acc : float) =
         this.Direction <- d // If this.Velocity <- (0.0, 0.0) we have set this.Direction to (0.0, 0.0) and we need to revert this change.
     
     override this.RenderInternal () : (PrimitiveTree * vec) =
-        (([(0.0,0.0);
+        ([(0.0,0.0);
         (38.0,11.0);
         (0.0,22.0)] 
-        |> filledPolygon red |> translate -8.0 -11.0), (8.0, 11.0))
+        |> filledPolygon red |> translate -8.0 -11.0, (8.0, 11.0))
 
 
 [<Sealed>]
@@ -218,7 +222,9 @@ type GameState(dims : int * int, timesteps : float) =
     member this.Height : int = snd dims
     member this.Run () : int =
         let mutable error = false
-        let delay = Some 100 // Wait for 100 microseconds i.e. 0.1 milliseconds
+        let delay =
+            this.TimeStepSize * 1000.0 // Convert from seconds to ms
+            |> int |> Some
         try
             interact "Asteroids" this.Width this.Height delay GameState.Draw GameState.React this
         with 
@@ -243,7 +249,8 @@ type GameState(dims : int * int, timesteps : float) =
         // TODO: Collision detection and resolution
         state.RemoveDeadEntities ()
         state.AdvanceEntities ()
-        (emptyTree, state.Entities)
+        let pwa = piecewiseAffine white 2 [(0.0, 256.0); (512.0, 256.0)] |> onto (piecewiseAffine white 2 [(256.0, 0.0); (256.0, 512.0)])
+        (pwa, state.Entities)
         ||> List.fold (fun acc e -> acc |> onto ((e :> IRenderable).Render()))
         |> make
         
@@ -251,16 +258,22 @@ type GameState(dims : int * int, timesteps : float) =
         match event with
             | TimerTick ->
                 Some state
+            // Upon user inputs, we deliberately return None since it would otherwise allow users to bypass
+            // the given time-interval for updates since holding down a key might send events faster than ticks.
+            // This unfortunately has the side effect that movement isn't updated in case a button is held down.
             | RightArrow ->
                 state.Spaceship.Rotate(Clockwise)
-                Some state
+                None
             | LeftArrow ->
                 state.Spaceship.Rotate(CounterClockwise)
-                Some state
+                None
             | UpArrow ->
                 state.Spaceship.Accelerate state.TimeStepSize
-                Some state
+                None
             | DownArrow ->
                 state.Spaceship.Brake state.TimeStepSize
-                Some state
+                None
+            | Key ' ' ->
+                state.Entities <- state.Entities @ [state.Spaceship.MakeBullet ()]
+                None
             | _ -> None

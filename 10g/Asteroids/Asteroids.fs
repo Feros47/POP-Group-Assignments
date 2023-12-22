@@ -5,6 +5,7 @@ open Color
 
 type vec = float * float
 type Rotation = Clockwise | CounterClockwise
+exception GameBreakException of bool
 
 /// <summary>Multiply a vector with a scalar</summary>
 /// <param name="(x,y)">The vector</param>
@@ -12,6 +13,14 @@ type Rotation = Clockwise | CounterClockwise
 /// <returns>(x,y) multiplied by a</returns>
 let multiply ((x,y) : vec) (a : float) : vec =
     (x*a, y*a)
+/// <summary>
+/// Given two vectors, a and b respectively, subtract b from a element-wise
+/// </summary>
+/// <param name="(x1, y1)">The 'a' vector</param>
+/// <param name="(x2, y2)">The 'b' vector</param>
+/// <returns>A vector representing a - b</returns>
+let subtract ((x1,y1): vec) ((x2,y2) : vec) : vec =
+    (x1 - x2), (y1 - y2)
 /// <summary>Add two vectors.</summary>
 /// <param name="(x1,y1)">First vector</param>
 /// <param name="(x2,y2)">Second vector</param>
@@ -53,6 +62,15 @@ let vectorRotate (v : vec) (rad : float) : vec =
     (fst v * Math.Cos(Math.PI * rad) - snd v * Math.Sin(Math.PI * rad)),
     (fst v * Math.Sin(Math.PI * rad) + snd v * Math.Cos(Math.PI * rad))
 
+/// <summary>
+/// Compute the dot product of two vectors.
+/// </summary>
+/// <param name="(x1,x2)">The first vector.</param>
+/// <param name="(x2,y2)">The second vector.</param>
+/// <returns>A floating point value for the dot product of the two vectors</returns>
+let dot ((x1,y1) : vec) ((x2,y2) : vec) : float =
+    x1*x2 + y1*y2
+
 [<Interface>]
 type IRenderable =
     abstract member Render : unit -> PrimitiveTree
@@ -60,34 +78,51 @@ type IRenderable =
 [<AbstractClass>]
 type Entity(pos : vec, vel : vec, r : float) =
     let mutable position : vec = pos
-    let mutable direction : vec = unit vel
+    let mutable direction : vec = (0.0,0.0)
     let mutable speed : float = length vel
     let radius = r
+
+    // We initialize direction a little differently since calling unit vel if |vel| = 0 would result in (NaN, NaN)
+    // This avoids that problem.
+    do
+        let (vx,vy) = vel
+        if vx = 0 && vy = 0 then
+            direction <- (0.0,0.0)
+        else
+            direction <- unit vel
+
     interface IRenderable with
         member this.Render () = 
             let x,y = position
             let rendation, (rx, ry) = this.RenderInternal()
             (x,y,rendation)
             |||> translate
-            |> rotate rx ry (rotation direction)
-            
+            |> rotate rx ry (rotation this.Direction)  
             
     member this.Position
         with get () = position
         and set (value) = position <- value
     member this.Velocity 
-        with get () = multiply direction speed
+        with get () = multiply this.Direction speed
         and set(value) =
             speed <- length value
-            direction <- unit value
+            this.Direction <- unit value
     member this.Radius = radius
+    abstract member Direction : vec with get, set
+    default this.Direction
+        with get () = direction
+        and set(value) = direction <- unit value // Make sure that the value is actually a unit vector.
 
     /// <summary>Using the object's speed, advance it by a given timestep</summary>
     /// <param name="interval">The interval (in seconds) to advance position by</param>
     /// <returns>The new position</returns>
-    member this.Advance (interval : float) : vec =
-        this.Position <- add this.Position (multiply this.Velocity interval)
-        this.Position
+    member this.Advance (interval : float) ((w, h) : int*int) : unit =
+        let mx, my = float w, float h
+        let delta = multiply this.Velocity interval
+        let xUncapped, yUncapped = add this.Position delta
+        this.Position <- ((xUncapped + mx) % mx), ((yUncapped + my) % my)
+        //this.Position <- add this.Position (multiply this.Velocity interval)
+        //this.Position
     /// <summary>Lets an entity remove itself.</summary>
     /// <returns>false by default, but inheriting classes can override it.</returns>
     abstract member ShouldDie : unit -> bool
@@ -128,24 +163,104 @@ type Bullet(pos : vec, vel : vec) =
 
 
 [<Sealed>]
-type Spaceship(pos : vec, vel : vec, acc : float) =
-    inherit Entity(pos, vel, 8)
+type Spaceship(pos : vec, orient : vec, acc : float) =
+    inherit Entity(pos, (0.0,0.0), 8)
     let _acceleration: float = acc
+    let mutable _orientation = unit orient
+
+    override this.Direction 
+        with get () = _orientation
+        and set (value) = _orientation <- value
     member this.Rotate (r : Rotation) =
-        let radIncrement = 0.05
+        let radIncrement = 0.025
         match r with
-            Clockwise -> this.Velocity <- (vectorRotate this.Velocity radIncrement)
-            | _ -> this.Velocity <- (vectorRotate this.Velocity -radIncrement)
+            Clockwise -> this.Direction <- (vectorRotate this.Direction radIncrement)
+            | _ -> this.Direction <- (vectorRotate this.Direction -radIncrement)
     member this.MakeBullet () =
-        let spaceshipTip = add this.Position (multiply (unit this.Velocity) 30.0)
-        new Bullet(spaceshipTip, unit this.Velocity)
+        let spaceshipTip = add this.Position (multiply (unit this.Direction) 30.0)
+        new Bullet(spaceshipTip, unit this.Direction)
     member this.Accelerate (interval: float) =
-        let maxVelocity = multiply (unit this.Velocity) 20.0
-        let deltaVelocity = multiply this.Velocity (interval * _acceleration)
+        let maxVelocity = multiply (unit this.Direction) 20.0
+        let deltaVelocity = multiply this.Direction (interval * _acceleration)
         let newVelocity = add this.Velocity deltaVelocity
         this.Velocity <- min maxVelocity newVelocity
+    member this.Brake (interval: float) =
+        let minVelocity = (0.0, 0.0)
+        let d = this.Direction
+        let deltaVelocity = multiply this.Direction (interval * _acceleration)
+        let newVelocity = subtract this.Velocity deltaVelocity
+        if dot this.Direction newVelocity < 0.0 then
+            this.Velocity <- (0.0, 0.0)
+        else
+            this.Velocity <- newVelocity
+        this.Direction <- d // If this.Velocity <- (0.0, 0.0) we have set this.Direction to (0.0, 0.0) and we need to revert this change.
+    
     override this.RenderInternal () : (PrimitiveTree * vec) =
         (([(0.0,0.0);
         (38.0,11.0);
         (0.0,22.0)] 
         |> filledPolygon red |> translate -8.0 -11.0), (8.0, 11.0))
+
+
+[<Sealed>]
+type GameState(dims : int * int, timesteps : float) =
+    let mutable _entities : List<Entity> = List.empty//[new Asteroid((1.0,128.0), (30.0,30.0), 32.0)]
+    let _spaceship : Spaceship = 
+        let ss = new Spaceship((256.0,256.0),(5.0,0.0),20.0)
+        _entities <- ss :: _entities
+        ss
+    member this.Entities
+        with get() = _entities
+        and set(value) = _entities <- value
+    member this.Spaceship : Spaceship = _spaceship
+    member this.TimeStepSize : float = timesteps
+    member this.Width : int = fst dims
+    member this.Height : int = snd dims
+    member this.Run () : int =
+        let mutable error = false
+        let delay = Some 100 // Wait for 100 microseconds i.e. 0.1 milliseconds
+        try
+            interact "Asteroids" this.Width this.Height delay GameState.Draw GameState.React this
+        with 
+            | GameBreakException e ->
+                if e then
+                    printfn "User won the game!"
+                else
+                    printfn "User lost the game!"
+                error <- false
+            | exn -> 
+                eprintfn "An error occured: %A" exn.Message
+                error <- true
+        if error then
+            1
+        else
+            0
+    member internal this.RemoveDeadEntities () : unit = 
+        this.Entities <- this.Entities |> List.filter (fun e -> not (e.ShouldDie ()))
+    member internal this.AdvanceEntities () : unit =
+        this.Entities |> List.iter (fun e -> e.Advance this.TimeStepSize (this.Width, this.Height))
+    static member Draw (state: GameState) : Picture =
+        // TODO: Collision detection and resolution
+        state.RemoveDeadEntities ()
+        state.AdvanceEntities ()
+        (emptyTree, state.Entities)
+        ||> List.fold (fun acc e -> acc |> onto ((e :> IRenderable).Render()))
+        |> make
+        
+    static member React (state: GameState) (event: Event) : GameState option =
+        match event with
+            | TimerTick ->
+                Some state
+            | RightArrow ->
+                state.Spaceship.Rotate(Clockwise)
+                Some state
+            | LeftArrow ->
+                state.Spaceship.Rotate(CounterClockwise)
+                Some state
+            | UpArrow ->
+                state.Spaceship.Accelerate state.TimeStepSize
+                Some state
+            | DownArrow ->
+                state.Spaceship.Brake state.TimeStepSize
+                Some state
+            | _ -> None

@@ -3,6 +3,7 @@ open Canvas
 
 type vec = float * float
 type Rotation = Clockwise | CounterClockwise
+exception GameBreakException of bool
 
 
 [<Interface>]
@@ -17,7 +18,8 @@ type Entity =
         member Position : vec
         member Velocity : vec
         member Radius : float
-        member Advance : float -> vec
+        abstract member Direction : vec
+        member Advance : float -> (int*int) -> unit
         abstract member ShouldDie : unit -> bool
         abstract member RenderInternal : unit -> (PrimitiveTree * vec)
     end
@@ -43,10 +45,17 @@ type Spaceship =
         member Rotate : Rotation -> unit
         member MakeBullet : unit -> Bullet
         member Accelerate : float -> unit
+        member Brake : float -> unit
     end
 
-(*[<Sealed>]
+[<Sealed>]
 type GameState =
-    class   
-        interface IRenderable
-    end*)
+    class
+        new : (int*int) * float -> GameState
+        member Run : unit -> int
+        member Entities : List<Entity>
+        member Spaceship : Spaceship
+
+        static member Draw : GameState -> Picture
+        static member React : GameState -> Event -> GameState option
+    end

@@ -71,6 +71,9 @@ let vectorRotate (v : vec) (rad : float) : vec =
 let dot ((x1,y1) : vec) ((x2,y2) : vec) : float =
     x1*x2 + y1*y2
 
+/// <summary>Generate a random number that can both be positive and negative</summary>
+/// <param name="rng">The random number generator to use</param>
+/// <returns>An integer between -Int.MaxValue and Int.MaxValue</returns>
 let randEntireRange (rng : Random) : int =
     let sign = (rng.Next() % 2) = 0
     if sign then

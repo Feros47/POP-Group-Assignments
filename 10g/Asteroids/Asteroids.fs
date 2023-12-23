@@ -261,12 +261,10 @@ type GameState(dims : int * int, timesteps : float) =
                 | e::es ->
                     let collisions = es |> List.collect (fun e' -> 
                         match this.CheckEntity e e' with
-                        | Some (type1, type2) when type1 = typeof<Asteroid> && type2 = typeof<Bullet> -> [e; e']
-                        | Some (type1, type2) when type1 = typeof<Bullet> && type2 = typeof<Asteroid> -> [e; e']
-                        | Some (type1, type2) when type1 = typeof<Spaceship> && type2 = typeof<Asteroid> -> 
-                            raise (GameBreakException(false))
-                        | Some (type1, type2) when type1 = typeof<Asteroid> && type2 = typeof<Spaceship> -> 
-                            raise (GameBreakException(false))
+                        | Some (type1, type2) when type1 <> typeof<Spaceship> && type2 <> typeof<Spaceship>
+                            -> [e; e']
+                        | Some (type1, type2) when type1 = typeof<Spaceship> || type2 = typeof<Spaceship>
+                            -> raise (GameBreakException(false))
                         | _ -> [])
                     checkCollisions (List.filter (fun e' -> not (List.contains e' collisions)) es)
         this.Entities <- checkCollisions this.Entities

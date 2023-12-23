@@ -139,7 +139,7 @@ type Entity(pos : vec, vel : vec, r : float) =
     default this.ShouldDie () =
         false
 
-    abstract member HandleCollision : List<Entity> -> (int*int) -> List<Entity>
+    abstract member HandleCollision : unit -> List<Entity>
     /// <summary>Convert the current object into a graphics primitive</summary>
     /// <returns>A PrimitiveTree representing the current object.</returns>
     abstract member RenderInternal : unit -> (PrimitiveTree * vec)
@@ -161,7 +161,7 @@ type Asteroid(pos : vec, vel : vec, r : float) =
     let _rng = new Random()
     
     static member MaxSpeed = 10.0;
-    override this.HandleCollision (entities : List<Entity>) (dims : int * int) : List<Entity> =
+    override this.HandleCollision () : List<Entity> =
         // If our radius is <= 8, we don't need to check anything and can just return
         // since this asteroid should just be removed.
         if this.Radius <= 8 then
@@ -214,7 +214,7 @@ type Bullet(pos : vec, vel : vec) =
     override this.ShouldDie () =
         (DateTime.Now - this.Created).Seconds >= 2
 
-    override this.HandleCollision (_ : List<Entity>) (_ : (int*int)) : List<Entity> =
+    override this.HandleCollision () : List<Entity> =
         []
 
     override this.RenderInternal () : (PrimitiveTree * vec) =
@@ -265,7 +265,7 @@ type Spaceship(pos : vec, orient : vec, acc : float) =
         else
             this.Velocity <- newVelocity
         this.Direction <- d // If this.Velocity <- (0.0, 0.0) we have set this.Direction to (0.0, 0.0) and we need to revert this change.
-    override this.HandleCollision (_ : List<Entity>) (_ : (int*int)) : List<Entity> =
+    override this.HandleCollision () : List<Entity> =
         raise (GameBreakException(false))    
     override this.RenderInternal () : (PrimitiveTree * vec) =
         ([(0.0,0.0);
@@ -275,11 +275,18 @@ type Spaceship(pos : vec, orient : vec, acc : float) =
 
 
 [<Sealed>]
-type GameState(dims : int * int, timesteps : float) =
-    let mutable _entities : List<Entity> = [new Asteroid((1.0,128.0), (30.0,30.0), 32.0)]
+type GameState(dims : int * int, numInitialAsteroids: int, timesteps : float, empty : bool) =
+    let mutable _entities : List<Entity> = 
+        if empty then
+            []
+        else
+            [new Asteroid((1.0,128.0), (30.0,30.0), 32.0)]
     let _spaceship : Spaceship = 
         let ss = new Spaceship((256.0,256.0),(5.0,0.0),20.0)
-        _entities <- ss :: _entities
+        if not empty then
+            _entities <- ss :: _entities
+        else
+            ()
         ss
 
     member this.Entities
@@ -310,6 +317,11 @@ type GameState(dims : int * int, timesteps : float) =
             1
         else
             0
+
+    member this.update () : unit =
+        this.RemoveDeadEntities ()
+        this.CheckCollisions ()
+        this.AdvanceEntities ()
     member this.CheckCollisions () =
         let mutable newEntities : Entity list = []
         let rec removeCollisions (entities : List<Entity>) : List<Entity> =
@@ -320,8 +332,8 @@ type GameState(dims : int * int, timesteps : float) =
                         match Entity.CheckCollision e e' with
                         | true ->
                             newEntities <- newEntities @ ([
-                                (e.HandleCollision this.Entities (this.Width, this.Height));
-                                (e'.HandleCollision this.Entities (this.Width, this.Height))
+                                (e.HandleCollision ());
+                                (e'.HandleCollision ())
                             ] |> List.concat)
                             [e;e']
                         | false -> [])
@@ -336,9 +348,7 @@ type GameState(dims : int * int, timesteps : float) =
     member this.AdvanceEntities () : unit =
         this.Entities |> List.iter (fun e -> e.Advance this.TimeStepSize (this.Width, this.Height))
     static member Draw (state: GameState) : Picture =
-        state.RemoveDeadEntities ()
-        state.CheckCollisions ()
-        state.AdvanceEntities ()
+        state.update ()
         let pwa = piecewiseAffine white 2 [(0.0, 256.0); (512.0, 256.0)] |> onto (piecewiseAffine white 2 [(256.0, 0.0); (256.0, 512.0)])
         (pwa, state.Entities)
         ||> List.fold (fun acc e -> acc |> onto ((e :> IRenderable).Render()))

@@ -164,35 +164,26 @@ type Asteroid(pos : vec, vel : vec, r : float) =
         if this.Radius <= 8 then
             []
         else
-            let child1 = new Asteroid (
-                add this.Position (this.findChildPosition entities dims),
+            let child1RelativePosition = this.findChildPosition ()
+            let child2RelativePosition = multiply child1RelativePosition -1.0
+            [new Asteroid(
+                add this.Position child1RelativePosition,
                 this.randomVelocity (),
-                this.Radius / 2.0)
-            let child2= new Asteroid (
-                add this.Position (this.findChildPosition (entities @ [child1]) dims),
+                this.Radius / 2.0);
+            new Asteroid(
+                add this.Position child2RelativePosition,
                 this.randomVelocity (),
-                this.Radius / 2.0)
-            [child1; child2]
+                this.Radius / 2.0)]
     override this.RenderInternal () : (PrimitiveTree * vec) =
         (filledEllipse gray this.Radius this.Radius, (0.0,0.0))
 
     /// <summary>Generate a vector with random direction as a candidate for a child asteroid</summary>
     /// <param name="entities">The entities on the window.</param>
     /// <returns>A vector to the new child's position</returns>
-    member private this.findChildPosition (entities : List<Entity>) (dims : int * int) : vec =
+    member private this.findChildPosition () : vec =
         let randomUnitVector () : vec =
             unit (float (randEntireRange (_rng)), float (randEntireRange (_rng)))
-
-        let mutable childPosRelative = (multiply (randomUnitVector ()) this.Radius)
-        let mutable child = new Asteroid(this.Position, childPosRelative, this.Radius / 2.0)
-        child.Advance 1.0 dims
-        let mutable validEntities = (entities |> List.filter (fun e -> e <> this)) @ [child]
-        while (validEntities |> List.exists (fun e -> Entity.CheckCollision child e)) do
-            childPosRelative <- (multiply (randomUnitVector ()) this.Radius)
-            child <- new Asteroid(this.Position, childPosRelative, this.Radius / 2.0)
-            child.Advance 1.0 dims
-            validEntities <- (entities |> List.filter (fun e -> e <> this)) @ [child]
-        childPosRelative
+        (multiply (randomUnitVector ()) this.Radius)
     
     /// <summary>Generate a velocity with speed between |this.Velocity| and MaxSpeed, with a random orientation</summary>
     /// <returns>The new velocity vector used for child velocity calculation</returns>
@@ -335,7 +326,7 @@ type GameState(dims : int * int, timesteps : float) =
                         e :: (removeCollisions (es |> List.filter (fun entity -> not (collisions |> List.contains entity))))
                     else
                         removeCollisions (es |> List.filter (fun entity -> not (collisions |> List.contains entity)))
-        this.Entities <- removeCollisions this.Entities
+        this.Entities <- ((removeCollisions this.Entities) @ newEntities)
     
     member this.RemoveDeadEntities () : unit = 
         this.Entities <- this.Entities |> List.filter (fun e -> not (e.ShouldDie ()))

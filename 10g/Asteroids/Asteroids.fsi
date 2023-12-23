@@ -21,6 +21,7 @@ type Entity =
         abstract member Direction : vec
         member Advance : float -> (int*int) -> unit
         abstract member ShouldDie : unit -> bool
+        abstract member HandleCollision : List<Entity> -> (int * int) -> List<Entity>
         abstract member RenderInternal : unit -> (PrimitiveTree * vec)
     end
 
@@ -56,6 +57,7 @@ type GameState =
         member Entities : List<Entity>
         member Spaceship : Spaceship
 
+        member AdvanceEntities : unit -> unit
         static member Draw : GameState -> Picture
         static member React : GameState -> Event -> GameState option
     end

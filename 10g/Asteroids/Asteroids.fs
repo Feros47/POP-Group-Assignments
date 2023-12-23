@@ -128,15 +128,78 @@ type Entity(pos : vec, vel : vec, r : float) =
     abstract member ShouldDie : unit -> bool
     default this.ShouldDie () =
         false
+
+    abstract member HandleCollision : List<Entity> -> (int*int) -> List<Entity>
     /// <summary>Convert the current object into a graphics primitive</summary>
     /// <returns>A PrimitiveTree representing the current object.</returns>
     abstract member RenderInternal : unit -> (PrimitiveTree * vec)
 
+    static member CheckCollision (e1 : Entity) (e2 : Entity) : bool =
+        let (ex, ey) = e1.Position
+        let (ex', ey') = e2.Position
+        let dx = ex - ex'
+        let dy = ey - ey'
+        let distance = sqrt(dx * dx + dy * dy)
+        if distance <= (e1.Radius + e2.Radius) then
+            true
+        else
+            false
+
 [<Sealed>]
 type Asteroid(pos : vec, vel : vec, r : float) =
-    inherit Entity(pos, vel, r)
+    inherit Entity(pos, min vel (multiply (unit vel) Asteroid.MaxSpeed), r)
+    let _rng = new Random()
+    
+    static member MaxSpeed = 10.0;
+    override this.HandleCollision (entities : List<Entity>) (dims : int * int) : List<Entity> =
+        // If our radius is <= 8, we don't need to check anything and can just return
+        // since this asteroid should just be removed.
+        if this.Radius <= 8 then
+            []
+        else
+            let child1 = new Asteroid (
+                add this.Position (this.findChildPosition entities dims),
+                this.randomVelocity (),
+                this.Radius / 2.0)
+            let child2= new Asteroid (
+                add this.Position (this.findChildPosition (entities @ [child1]) dims),
+                this.randomVelocity (),
+                this.Radius / 2.0)
+            [child1; child2]
     override this.RenderInternal () : (PrimitiveTree * vec) =
         (filledEllipse gray this.Radius this.Radius, (0.0,0.0))
+
+    /// <summary>Generate a vector with random direction as a candidate for a child asteroid</summary>
+    /// <param name="entities">The entities on the window.</param>
+    /// <returns>A vector to the new child's position</returns>
+    member private this.findChildPosition (entities : List<Entity>) (dims : int * int) : vec =
+        let randomUnitVector () : vec =
+            unit (float (_rng.Next ()), float (_rng.Next ()))
+
+        let mutable childPosRelative = (multiply (randomUnitVector ()) this.Radius)
+        let mutable child = new Asteroid(this.Position, childPosRelative, this.Radius / 2.0)
+        child.Advance 1.0 dims
+        let mutable validEntities = (entities |> List.filter (fun e -> e <> this)) @ [child]
+        while (validEntities |> List.exists (fun e -> Entity.CheckCollision child e)) do
+            childPosRelative <- (multiply (randomUnitVector ()) this.Radius)
+            child <- new Asteroid(this.Position, childPosRelative, this.Radius / 2.0)
+            child.Advance 1.0 dims
+            validEntities <- (entities |> List.filter (fun e -> e <> this)) @ [child]
+        childPosRelative
+    
+    /// <summary>Generate a velocity with speed between |this.Velocity| and MaxSpeed, with a random orientation</summary>
+    /// <returns>The new velocity vector used for child velocity calculation</returns>
+    member private this.randomVelocity () : vec =
+        let clamp (minVec : vec) (value : vec) (maxVec : vec) : vec=
+            min (max minVec value) maxVec
+        // Create a vector with a random speed between the current speed and the maximum allowed speed
+        let currentSpeed = length this.Velocity
+        let randomLength = currentSpeed + (Asteroid.MaxSpeed - currentSpeed) * _rng.NextDouble()
+        let randomAngle = 2.0 * Math.PI * _rng.NextDouble ()
+        clamp 
+            this.Velocity 
+            (randomLength * (Math.Cos randomAngle), randomLength * (Math.Sin randomAngle))
+            (multiply this.Direction Asteroid.MaxSpeed)
 
 [<Sealed>]
 type Bullet(pos : vec, vel : vec) =
@@ -149,6 +212,9 @@ type Bullet(pos : vec, vel : vec) =
     /// <returns>True if the bullet was created more than two seconds ago.</returns>
     override this.ShouldDie () =
         (DateTime.Now - this.Created).Seconds >= 2
+
+    override this.HandleCollision (_ : List<Entity>) (_ : (int*int)) : List<Entity> =
+        []
 
     override this.RenderInternal () : (PrimitiveTree * vec) =
         ([(0.0,0.0);
@@ -198,7 +264,8 @@ type Spaceship(pos : vec, orient : vec, acc : float) =
         else
             this.Velocity <- newVelocity
         this.Direction <- d // If this.Velocity <- (0.0, 0.0) we have set this.Direction to (0.0, 0.0) and we need to revert this change.
-    
+    override this.HandleCollision (_ : List<Entity>) (_ : (int*int)) : List<Entity> =
+        raise (GameBreakException(false))    
     override this.RenderInternal () : (PrimitiveTree * vec) =
         ([(0.0,0.0);
         (38.0,11.0);
@@ -242,41 +309,38 @@ type GameState(dims : int * int, timesteps : float) =
             1
         else
             0
-
-
-    member this.CheckCollision (e1 : Entity) (e2 : Entity) =
-        let (ex, ey) = e1.Position
-        let (ex', ey') = e2.Position
-        let dx = ex - ex'
-        let dy = ey - ey'
-        let distance = sqrt(dx * dx + dy * dy)
-        if distance <= (e1.Radius + e2.Radius) then
-            Some (e1.GetType(), e2.GetType())
-        else
-            None
     member this.CheckCollisions () =
-        let rec checkCollisions (entities : List<Entity>) =
+        let mutable newEntities : Entity list = []
+        let rec removeCollisions (entities : List<Entity>) =
             match entities with
                 | [] -> []
                 | e::es ->
                     let collisions = es |> List.collect (fun e' -> 
-                        match this.CheckCollision e e' with
-                        | Some (type1, type2) when type1 <> typeof<Spaceship> && type2 <> typeof<Spaceship>
-                            -> [e; e']
+                        match Entity.CheckCollision e e' with
+                        | true ->
+                            newEntities <- newEntities @ ([
+                                (e.HandleCollision this.Entities (this.Width, this.Height));
+                                (e'.HandleCollision this.Entities (this.Width, this.Height))
+                            ] |> List.concat)
+                            [e;e']
+                        | false -> [])
+                        (*match Entity.CheckCollision e e' with
+                        | Some (type1, type2) when type1 <> typeof<Spaceship> && type2 <> typeof<Spaceship> -> //[e; e']
+                            
+                            List.concat ([e.HandleCollision entities (this.Width, this.Height); e'.HandleCollision entities (this.Width, this.Height)])
                         | Some (type1, type2) when type1 = typeof<Spaceship> || type2 = typeof<Spaceship>
                             -> raise (GameBreakException(false))
-                        | _ -> [])
-                    checkCollisions (List.filter (fun e' -> not (List.contains e' collisions)) es)
-        this.Entities <- checkCollisions this.Entities
+                        | _ -> [])*)
+                    removeCollisions (List.filter (fun e' -> not (List.contains e' collisions)) es)
+        this.Entities <- removeCollisions this.Entities
     
     member this.RemoveDeadEntities () : unit = 
         this.Entities <- this.Entities |> List.filter (fun e -> not (e.ShouldDie ()))
     member this.AdvanceEntities () : unit =
         this.Entities |> List.iter (fun e -> e.Advance this.TimeStepSize (this.Width, this.Height))
     static member Draw (state: GameState) : Picture =
-        // TODO: Collision detection and resolution
-        state.CheckCollisions ()
         state.RemoveDeadEntities ()
+        state.CheckCollisions ()
         state.AdvanceEntities ()
         let pwa = piecewiseAffine white 2 [(0.0, 256.0); (512.0, 256.0)] |> onto (piecewiseAffine white 2 [(256.0, 0.0); (256.0, 512.0)])
         (pwa, state.Entities)

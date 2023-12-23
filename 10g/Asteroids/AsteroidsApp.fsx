@@ -2,7 +2,6 @@
 #r "nuget:DIKU.Canvas, 2.0.2"
 #r "nuget:FsUnit, 3.0.0"
 open Asteroids
-open Canvas
 open NUnit.Framework
 open FsUnit
 open System
@@ -117,7 +116,6 @@ type EntityTests() =
 
         let xExpected = ((fst position) + (fst velocity) + 512.0) % 512.0
         let yExpected = ((snd position) + (snd velocity) + 512.0) % 512.0
-        printfn "%A" entity.Position
         entity.Position = (xExpected, yExpected)
 
 type AsteroidsTests() =

@@ -283,7 +283,10 @@ type Spaceship(pos : vec, orient : vec, acc : float) =
 type GameState(dims : int * int, numInitialAsteroids: int, timesteps : float, empty : bool) =
     let mutable _entities : List<Entity> = []
     let _spaceship : Spaceship = 
-        let ss = new Spaceship((256.0,256.0),(5.0,0.0),20.0)
+        let largestPossibleVector = (float (fst dims), float (snd dims))
+        let pos = randVectorInLengthRange 0.0 (length largestPossibleVector)
+        let orientation = unit (randVectorInLengthRange 0.0 (length largestPossibleVector))
+        let ss = new Spaceship(pos,orientation,20.0)
         if not empty then
             _entities <- ss :: _entities
         else
@@ -370,8 +373,7 @@ type GameState(dims : int * int, numInitialAsteroids: int, timesteps : float, em
         this.Entities |> List.iter (fun e -> e.Advance this.TimeStepSize (this.Width, this.Height))
     static member Draw (state: GameState) : Picture =
         state.update ()
-        let pwa = piecewiseAffine white 2 [(0.0, 256.0); (512.0, 256.0)] |> onto (piecewiseAffine white 2 [(256.0, 0.0); (256.0, 512.0)])
-        (pwa, state.Entities)
+        (emptyTree, state.Entities)
         ||> List.fold (fun acc e -> acc |> onto ((e :> IRenderable).Render()))
         |> make
         

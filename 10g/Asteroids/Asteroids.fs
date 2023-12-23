@@ -213,6 +213,7 @@ type GameState(dims : int * int, timesteps : float) =
         let ss = new Spaceship((256.0,256.0),(5.0,0.0),20.0)
         _entities <- ss :: _entities
         ss
+
     member this.Entities
         with get() = _entities
         and set(value) = _entities <- value
@@ -241,12 +242,42 @@ type GameState(dims : int * int, timesteps : float) =
             1
         else
             0
-    member internal this.RemoveDeadEntities () : unit = 
+
+
+    member this.CheckEntity (e1 : Entity) (e2 : Entity) =
+        let (ex, ey) = e1.Position
+        let (ex', ey') = e2.Position
+        let dx = ex - ex'
+        let dy = ey - ey'
+        let distance = sqrt(dx * dx + dy * dy)
+        if distance <= (e1.Radius + e2.Radius) then
+            Some (e1.GetType(), e2.GetType())
+        else
+            None
+    member this.CheckCollisions () =
+        let rec checkCollisions (entities : List<Entity>) =
+            match entities with
+                | [] -> []
+                | e::es ->
+                    let collisions = es |> List.collect (fun e' -> 
+                        match this.CheckEntity e e' with
+                        | Some (type1, type2) when type1 = typeof<Asteroid> && type2 = typeof<Bullet> -> [e; e']
+                        | Some (type1, type2) when type1 = typeof<Bullet> && type2 = typeof<Asteroid> -> [e; e']
+                        | Some (type1, type2) when type1 = typeof<Spaceship> && type2 = typeof<Asteroid> -> 
+                            raise (GameBreakException(false))
+                        | Some (type1, type2) when type1 = typeof<Asteroid> && type2 = typeof<Spaceship> -> 
+                            raise (GameBreakException(false))
+                        | _ -> [])
+                    checkCollisions (List.filter (fun e' -> not (List.contains e' collisions)) es)
+        this.Entities <- checkCollisions this.Entities
+    
+    member this.RemoveDeadEntities () : unit = 
         this.Entities <- this.Entities |> List.filter (fun e -> not (e.ShouldDie ()))
-    member internal this.AdvanceEntities () : unit =
+    member this.AdvanceEntities () : unit =
         this.Entities |> List.iter (fun e -> e.Advance this.TimeStepSize (this.Width, this.Height))
     static member Draw (state: GameState) : Picture =
         // TODO: Collision detection and resolution
+        state.CheckCollisions ()
         state.RemoveDeadEntities ()
         state.AdvanceEntities ()
         let pwa = piecewiseAffine white 2 [(0.0, 256.0); (512.0, 256.0)] |> onto (piecewiseAffine white 2 [(256.0, 0.0); (256.0, 512.0)])

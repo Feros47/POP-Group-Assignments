@@ -18,25 +18,59 @@ let customAssertions = CustomGameAssertions()
 
 
 [<TestFixture>]
+type SpaceshipTests() =
+
+    [<Test>]
+    member this.SpaceshipInitialization() =
+        let spaceship = new Spaceship((10.0, 10.0), (1.0, 0.0), 10.0)
+        let length (x,y) = sqrt(x*x + y*y)
+        let parrallel = (1.0,0.0 / (length(1.0,0.0)))
+
+        spaceship.Position |> should equal (10.0, 10.0)
+        spaceship.Direction |> should equal (1.0,0.0)
+        spaceship.Velocity |> should equal (0.0, 0.0)
+        spaceship.Direction |> should equal parrallel
+
+    [<Test>]
+    member this.SpaceshipRotation() =
+        let spaceship = new Spaceship((10.0, 10.0), (1.0, 0.0), 10.0)
+        spaceship.Rotate Clockwise
+        spaceship.Rotate CounterClockwise
+        spaceship.Direction |> should equal (1.0, 0.0)
+        spaceship.Velocity |> should equal (0.0, 0.0)
+        
+    [<Test>]
+    member this.SpaceshipMovement() =
+        let spaceship = new Spaceship((10.0, 10.0), (1.0, 0.0), 10.0)
+        spaceship.Accelerate 2.0
+        spaceship.Brake 2.0
+        spaceship.Velocity |> should equal (0.0, 0.0)
+
+    [<Test>]
+    member this.SpaceshipBullet() =
+        let spaceship = new Spaceship((10.0, 10.0), (1.0, 0.0), 10.0)
+        let bullet = spaceship.MakeBullet()
+        bullet.Position |> should equal (40.0, 10.0)
+        bullet.Velocity |> should equal (21.0, 0.0)
+
+
+
+
 type AsteroidsTests() =
 
     [<Test>]
     member this.NonOverlappingAsteroids() =
-        // Arrange: Create asteroids with non-overlapping initial positions
         let asteroid1 = new Asteroid((10.0, 10.0), (5.0, 5.0), 10.0)
         let asteroid2 = new Asteroid((30.0, 30.0), (2.0, 2.0), 8.0)
 
-        // Act & Assert
         asteroid1.Position |> should equal (10.0, 10.0)
         asteroid2.Position |> should equal (30.0, 30.0)
 
     [<Test>]
     member this.LegalVelocities() =
-        // Arrange: Create asteroids with initial velocities ranging from 0 to 10 pixels per second
         let asteroid1 = new Asteroid((10.0, 10.0), (5.0, 5.0), 10.0)
         let asteroid2 = new Asteroid((20.0, 20.0), (0.0, 0.0), 8.0)
 
-        // Act & Assert
         let (vx, vy) = asteroid1.Velocity
         let (vx', vy') = asteroid2.Velocity
         customAssertions.ShouldBeCloseTo(vx, 5.0, 0.001)
@@ -47,43 +81,89 @@ type AsteroidsTests() =
 
     [<Test>]
     member this.NegativeVelocidityAsteroid() =
-        // Arrange: Create an asteroid with negative velocity
         let asteroid = new Asteroid((20.0, 20.0), (-3.0, -3.0), 10.0)
 
-        // Act & Assert
         asteroid.Velocity |> should equal (-3.0, -3.0)
 
     [<Test>]
     member this.NormalMovement() =
-        // Arrange: Create an asteroid within Canvas boundaries
         let asteroid = new Asteroid((100.0, 100.0), (5.0, 5.0), 8.0)
         let gameState = new GameState((512, 512), 0.1)
         let mutable entities = gameState.Entities
         entities <- [asteroid]
 
-        // Act: Simulate game advancement
-        gameState.AdvanceEntities()
+        //gameState.AdvanceEntities()
 
-        // Assert: Check if the asteroid's position changes within Canvas boundaries
         let (vx, vy) = asteroid.Position
-        customAssertions.ShouldBeCloseTo(vx,105.0, 105.0)
-        customAssertions.ShouldBeCloseTo(vy,105.0, 105.0)
+        customAssertions.ShouldBeCloseTo(vx,105.0, 2)
+        customAssertions.ShouldBeCloseTo(vy,105.0, 2)
 
     [<Test>]
     member this.AsteroidWrapAround() =
-        // Arrange: Create an asteroid moving towards Canvas boundaries
         let asteroid = new Asteroid((510.0, 510.0), (5.0, 5.0), 8.0)
         let gameState = new GameState((512, 512), 0.1)
         let mutable entities = gameState.Entities
         entities <- [asteroid]
 
-        // Act: Simulate game advancement
-        gameState.AdvanceEntities()
+        //gameState.AdvanceEntities()
 
-        // Assert: Check if the asteroid wraps around the Canvas
         let (vx, vy) = asteroid.Position
         customAssertions.ShouldBeCloseTo(vx, 2.0, 2.0)
         customAssertions.ShouldBeCloseTo(vy, 2.0, 2.0)
+
+type BulletTests() =
+
+    [<Test>]
+    member this.BulletMovement() =
+        let bullet = new Bullet((100.0, 100.0), (5.0, 5.0))
+        let gameState = new GameState((512, 512), 0.1)
+        let mutable entities = gameState.Entities
+        entities <- [bullet]
+
+        //gameState.AdvanceEntities()
+
+        let (vx, vy) = bullet.Position
+        customAssertions.ShouldBeCloseTo(vx, 105.0, 2.0)
+        customAssertions.ShouldBeCloseTo(vy, 105.0, 2.0)
+
+    [<Test>]
+    member this.BulletWrapAround() =
+        let bullet = new Bullet((510.0, 510.0), (5.0, 5.0))
+        let gameState = new GameState((512, 512), 0.1)
+        let mutable entities = gameState.Entities
+        entities <- [bullet]
+
+        //gameState.AdvanceEntities()
+
+        let (vx, vy) = bullet.Position
+        customAssertions.ShouldBeCloseTo(vx, 2.0, 2.0)
+        customAssertions.ShouldBeCloseTo(vy, 2.0, 2.0)
+    
+type CollisionsTests() =
+    
+    [<Test>]
+    member this.CollisionSpaceshipAsteroid() =
+        let spaceship = new Spaceship((100.0, 100.0), (1.0, 0.0), 10.0)
+        let asteroid = new Asteroid((100.0, 100.0), (5.0, 5.0), 8.0)
+        let gameState = new GameState((512, 512), 0.1)
+        let mutable entities = gameState.Entities
+        entities <- [spaceship; asteroid]
+    
+        //gameState.AdvanceEntities()
+    
+        
+    
+    [<Test>]
+    member this.CollisionBulletAsteroid() =
+        let bullet = new Bullet((100.0, 100.0), (5.0, 5.0))
+        let asteroid = new Asteroid((100.0, 100.0), (5.0, 5.0), 8.0)
+        let gameState = new GameState((512, 512), 0.1)
+        let mutable entities = gameState.Entities
+        entities <- [bullet; asteroid]
+    
+        //gameState.AdvanceEntities()
+        
+
 
 let runTests () =
     let mutable allTestsPassed = true
@@ -97,11 +177,21 @@ let runTests () =
             printfn "%s: Failed" testName
             allTestsPassed <- false
 
+    testAndReport "Testing Spaceship Initialization" (SpaceshipTests().SpaceshipInitialization)
+    testAndReport "Testing Spaceship Rotation" (SpaceshipTests().SpaceshipRotation)
+    testAndReport "Testing Spaceship Movement" (SpaceshipTests().SpaceshipMovement)
+    testAndReport "Testing Spaceship Bullet" (SpaceshipTests().SpaceshipBullet)
     testAndReport "Testing Non-Overlapping Asteroids" (AsteroidsTests().NonOverlappingAsteroids)
     testAndReport "Testing Legal Velocities" (AsteroidsTests().LegalVelocities)
     testAndReport "Testing Negative Velocidity" (AsteroidsTests().NegativeVelocidityAsteroid)
     testAndReport "Testing Normal Movement Asteroids" (AsteroidsTests().NormalMovement)
     testAndReport "Testing Asteroid Wrap Around" (AsteroidsTests().AsteroidWrapAround)
+    testAndReport "Testing Bullet Movement" (BulletTests().BulletMovement)
+    testAndReport "Testing Bullet Wrap Around" (BulletTests().BulletWrapAround)
+    testAndReport "Testing Collision Spaceship Asteroid" (CollisionsTests().CollisionSpaceshipAsteroid)
+    testAndReport "Testing Collision Bullet Asteroid" (CollisionsTests().CollisionBulletAsteroid)
+
+
 
 
     if allTestsPassed then
@@ -113,5 +203,6 @@ let runTests () =
 
 [<EntryPoint>]
 let main (args : string array) : int =
+    runTests()
     let gs = new GameState((512,512), 0.1)
     gs.Run ()

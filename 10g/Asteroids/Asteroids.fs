@@ -244,7 +244,7 @@ type GameState(dims : int * int, timesteps : float) =
             0
 
 
-    member this.CheckEntity (e1 : Entity) (e2 : Entity) =
+    member this.CheckCollision (e1 : Entity) (e2 : Entity) =
         let (ex, ey) = e1.Position
         let (ex', ey') = e2.Position
         let dx = ex - ex'
@@ -260,7 +260,7 @@ type GameState(dims : int * int, timesteps : float) =
                 | [] -> []
                 | e::es ->
                     let collisions = es |> List.collect (fun e' -> 
-                        match this.CheckEntity e e' with
+                        match this.CheckCollision e e' with
                         | Some (type1, type2) when type1 <> typeof<Spaceship> && type2 <> typeof<Spaceship>
                             -> [e; e']
                         | Some (type1, type2) when type1 = typeof<Spaceship> || type2 = typeof<Spaceship>

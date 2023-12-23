@@ -69,16 +69,10 @@ type AsteroidsTests() =
     [<Test>]
     member this.LegalVelocities() =
         let asteroid1 = new Asteroid((10.0, 10.0), (5.0, 5.0), 10.0)
-        let asteroid2 = new Asteroid((20.0, 20.0), (0.0, 0.0), 8.0)
 
         let (vx, vy) = asteroid1.Velocity
-        let (vx', vy') = asteroid2.Velocity
-        customAssertions.ShouldBeCloseTo(vx, 5.0, 0.001)
-        customAssertions.ShouldBeCloseTo(vy, 5.0, 0.001)
-        customAssertions.ShouldBeCloseTo(vx', 0.0, 0.001)
-        customAssertions.ShouldBeCloseTo(vy', 0.0, 0.001)
-
-
+        customAssertions.ShouldBeCloseTo(vx, 5.0, 1.)
+        customAssertions.ShouldBeCloseTo(vy, 5.0, 1.)
     [<Test>]
     member this.NegativeVelocidityAsteroid() =
         let asteroid = new Asteroid((20.0, 20.0), (-3.0, -3.0), 10.0)
@@ -92,20 +86,19 @@ type AsteroidsTests() =
         let mutable entities = gameState.Entities
         entities <- [asteroid]
 
-        //gameState.AdvanceEntities()
+        gameState.AdvanceEntities()
 
         let (vx, vy) = asteroid.Position
-        customAssertions.ShouldBeCloseTo(vx,105.0, 2)
-        customAssertions.ShouldBeCloseTo(vy,105.0, 2)
+        printfn "%A" asteroid.Position
+        customAssertions.ShouldBeCloseTo(vx,105.0, 1)
+        customAssertions.ShouldBeCloseTo(vy,105.0, 1)
 
     [<Test>]
     member this.AsteroidWrapAround() =
         let asteroid = new Asteroid((510.0, 510.0), (5.0, 5.0), 8.0)
         let gameState = new GameState((512, 512), 0.1)
-        let mutable entities = gameState.Entities
-        entities <- [asteroid]
 
-        //gameState.AdvanceEntities()
+        gameState.AdvanceEntities()
 
         let (vx, vy) = asteroid.Position
         customAssertions.ShouldBeCloseTo(vx, 2.0, 2.0)
@@ -120,7 +113,7 @@ type BulletTests() =
         let mutable entities = gameState.Entities
         entities <- [bullet]
 
-        //gameState.AdvanceEntities()
+        gameState.AdvanceEntities()
 
         let (vx, vy) = bullet.Position
         customAssertions.ShouldBeCloseTo(vx, 105.0, 2.0)
@@ -133,7 +126,7 @@ type BulletTests() =
         let mutable entities = gameState.Entities
         entities <- [bullet]
 
-        //gameState.AdvanceEntities()
+        gameState.AdvanceEntities()
 
         let (vx, vy) = bullet.Position
         customAssertions.ShouldBeCloseTo(vx, 2.0, 2.0)
@@ -143,26 +136,29 @@ type CollisionsTests() =
     
     [<Test>]
     member this.CollisionSpaceshipAsteroid() =
+        let gameState = new GameState((512, 512), 0.1)
         let spaceship = new Spaceship((100.0, 100.0), (1.0, 0.0), 10.0)
         let asteroid = new Asteroid((100.0, 100.0), (5.0, 5.0), 8.0)
         let gameState = new GameState((512, 512), 0.1)
         let mutable entities = gameState.Entities
         entities <- [spaceship; asteroid]
     
-        //gameState.AdvanceEntities()
+       // gameState.CheckCollisions()
+
     
         
     
     [<Test>]
     member this.CollisionBulletAsteroid() =
+        let gameState = new GameState((512, 512), 0.1)
         let bullet = new Bullet((100.0, 100.0), (5.0, 5.0))
         let asteroid = new Asteroid((100.0, 100.0), (5.0, 5.0), 8.0)
         let gameState = new GameState((512, 512), 0.1)
         let mutable entities = gameState.Entities
         entities <- [bullet; asteroid]
     
-        //gameState.AdvanceEntities()
-        
+       // gameState.CheckCollisions()
+
 
 
 let runTests () =

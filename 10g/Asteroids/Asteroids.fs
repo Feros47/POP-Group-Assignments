@@ -7,6 +7,10 @@ type vec = float * float
 type Rotation = Clockwise | CounterClockwise
 exception GameBreakException of bool
 
+// Global random number generator.
+// These are seeded with a default value, so by making it global we in effect add randomness as a result of how the user chooses to play.
+let rng = new Random()
+
 /// <summary>Multiply a vector with a scalar</summary>
 /// <param name="(x,y)">The vector</param>
 /// <param name="a">The scalar</param>
@@ -74,12 +78,17 @@ let dot ((x1,y1) : vec) ((x2,y2) : vec) : float =
 /// <summary>Generate a random number that can both be positive and negative</summary>
 /// <param name="rng">The random number generator to use</param>
 /// <returns>An integer between -Int.MaxValue and Int.MaxValue</returns>
-let randEntireRange (rng : Random) : int =
+let randEntireRange () : int =
     let sign = (rng.Next() % 2) = 0
     if sign then
         rng.Next()
     else
         -rng.Next()
+
+let randVectorInLengthRange (minLength: float) (maxLength : float) =
+    let randomLength = minLength + (maxLength - minLength) * rng.NextDouble()
+    let randomAngle = 2.0 * Math.PI * rng.NextDouble ()
+    (randomLength * (Math.Cos randomAngle), randomLength * (Math.Sin randomAngle))
 
 [<Interface>]
 type IRenderable =
@@ -157,9 +166,7 @@ type Entity(pos : vec, vel : vec, r : float) =
 
 [<Sealed>]
 type Asteroid(pos : vec, vel : vec, r : float) =
-    inherit Entity(pos, min vel (multiply (unit vel) Asteroid.MaxSpeed), r)
-    let _rng = new Random()
-    
+    inherit Entity(pos, min vel (multiply (unit vel) Asteroid.MaxSpeed), r)    
     static member MaxSpeed = 10.0;
     override this.HandleCollision () : List<Entity> =
         // If our radius is <= 8, we don't need to check anything and can just return
@@ -185,7 +192,7 @@ type Asteroid(pos : vec, vel : vec, r : float) =
     /// <returns>A vector to the new child's position</returns>
     member private this.findChildPosition () : vec =
         let randomUnitVector () : vec =
-            unit (float (randEntireRange (_rng)), float (randEntireRange (_rng)))
+            unit (float (randEntireRange ()), float (randEntireRange ()))
         (multiply (randomUnitVector ()) this.Radius)
     
     /// <summary>Generate a velocity with speed between |this.Velocity| and MaxSpeed, with a random orientation</summary>
@@ -193,13 +200,11 @@ type Asteroid(pos : vec, vel : vec, r : float) =
     member private this.randomVelocity () : vec =
         let clamp (minVec : vec) (value : vec) (maxVec : vec) : vec=
             min (max minVec value) maxVec
+        
         // Create a vector with a random speed between the current speed and the maximum allowed speed
-        let currentSpeed = length this.Velocity
-        let randomLength = currentSpeed + (Asteroid.MaxSpeed - currentSpeed) * _rng.NextDouble()
-        let randomAngle = 2.0 * Math.PI * _rng.NextDouble ()
         clamp 
             this.Velocity 
-            (randomLength * (Math.Cos randomAngle), randomLength * (Math.Sin randomAngle))
+            (randVectorInLengthRange (length this.Velocity) Asteroid.MaxSpeed)
             (multiply this.Direction Asteroid.MaxSpeed)
 
 [<Sealed>]
@@ -276,11 +281,7 @@ type Spaceship(pos : vec, orient : vec, acc : float) =
 
 [<Sealed>]
 type GameState(dims : int * int, numInitialAsteroids: int, timesteps : float, empty : bool) =
-    let mutable _entities : List<Entity> = 
-        if empty then
-            []
-        else
-            [new Asteroid((1.0,128.0), (30.0,30.0), 32.0)]
+    let mutable _entities : List<Entity> = []
     let _spaceship : Spaceship = 
         let ss = new Spaceship((256.0,256.0),(5.0,0.0),20.0)
         if not empty then
@@ -288,6 +289,23 @@ type GameState(dims : int * int, numInitialAsteroids: int, timesteps : float, em
         else
             ()
         ss
+
+    let createRandomAsteroid () : Asteroid =
+        let largestPossibleVector = (float (fst dims), float (snd dims))
+        let mutable currentPosition = randVectorInLengthRange 0.0 (length largestPossibleVector)
+        let mutable asteroid = new Asteroid (currentPosition, (0.0, 0.0), 32.0)
+
+        while (_entities |> List.tryFind (fun e -> (Entity.CheckCollision e asteroid))).IsSome do
+            currentPosition <- randVectorInLengthRange 0.0 (length largestPossibleVector)
+            asteroid <- new Asteroid (currentPosition, (0.0, 0.0), 32.0)
+        // We now have a valid position -> create a random velocity and return
+        let velocity = randVectorInLengthRange 1.0 Asteroid.MaxSpeed
+        new Asteroid(currentPosition, velocity, 32.0)
+
+    do
+        if not empty then
+            for _ in [1..numInitialAsteroids] do
+                _entities <- _entities @ [createRandomAsteroid ()]
 
     member this.Entities
         with get() = _entities
@@ -319,9 +337,12 @@ type GameState(dims : int * int, numInitialAsteroids: int, timesteps : float, em
             0
 
     member this.update () : unit =
-        this.RemoveDeadEntities ()
-        this.CheckCollisions ()
-        this.AdvanceEntities ()
+        if (this.Entities |> List.filter (fun e -> (e.GetType() = typeof<Asteroid>))).Length <= 0 then
+            raise (GameBreakException(true))
+        else
+            this.RemoveDeadEntities ()
+            this.CheckCollisions ()
+            this.AdvanceEntities ()
     member this.CheckCollisions () =
         let mutable newEntities : Entity list = []
         let rec removeCollisions (entities : List<Entity>) : List<Entity> =

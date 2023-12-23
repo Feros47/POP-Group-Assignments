@@ -23,6 +23,7 @@ type Entity =
         abstract member ShouldDie : unit -> bool
         abstract member HandleCollision : unit -> List<Entity>
         abstract member RenderInternal : unit -> (PrimitiveTree * vec)
+        static member CheckCollision : Entity -> Entity -> bool
     end
 
 [<Sealed>]
@@ -30,6 +31,9 @@ type Asteroid =
     class
         new : vec * vec * float -> Asteroid
         inherit Entity
+        static member MaxSpeed : float
+        member private findChildPosition : unit -> vec
+        member private randomVelocity : unit -> vec
     end
 [<Sealed>]
 type Bullet =
@@ -53,11 +57,16 @@ type Spaceship =
 type GameState =
     class
         new : (int*int) * int * float * bool -> GameState
-        member Run : unit -> int
         member Entities : List<Entity> with get, set
         member Spaceship : Spaceship
+        member TimeStepSize : float
+        member Width : int
+        member Height : int
 
+        member Run : unit -> int
+        member update : unit -> unit
         member CheckCollisions : unit -> unit
+        member RemoveDeadEntities : unit -> unit
         member AdvanceEntities : unit -> unit
         static member Draw : GameState -> Picture
         static member React : GameState -> Event -> GameState option

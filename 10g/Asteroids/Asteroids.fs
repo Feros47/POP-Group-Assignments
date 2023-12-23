@@ -85,6 +85,10 @@ let randEntireRange () : int =
     else
         -rng.Next()
 
+/// <summary>Generate a random vector within a certain length range</summary>
+/// <param name="minLength">Minimum inclusive length</param>
+/// <param name="maxLength">Maximum exclusive length</param>
+/// <returns>A vector with random orientation and random length withing [minLength; maxLength[</returns>
 let randVectorInLengthRange (minLength: float) (maxLength : float) =
     let randomLength = minLength + (maxLength - minLength) * rng.NextDouble()
     let randomAngle = 2.0 * Math.PI * rng.NextDouble ()
@@ -111,7 +115,9 @@ type Entity(pos : vec, vel : vec, r : float) =
             direction <- unit vel
 
     interface IRenderable with
-        member this.Render () = 
+        /// <summary>Calls RenderInternal to get a representation of the current object, translates and rotates this</summary>
+        /// <returns>A PrimitiveTree object representing the current object and its position</returns>
+        member this.Render () : PrimitiveTree = 
             let x,y = position
             let rendation, (rx, ry) = this.RenderInternal()
             (x,y,rendation)
@@ -140,19 +146,23 @@ type Entity(pos : vec, vel : vec, r : float) =
         let delta = multiply this.Velocity interval
         let xUncapped, yUncapped = add this.Position delta
         this.Position <- ((xUncapped + mx) % mx), ((yUncapped + my) % my)
-        //this.Position <- add this.Position (multiply this.Velocity interval)
-        //this.Position
+
     /// <summary>Lets an entity remove itself.</summary>
     /// <returns>false by default, but inheriting classes can override it.</returns>
     abstract member ShouldDie : unit -> bool
     default this.ShouldDie () =
         false
 
+    /// <summary>Handle a collision.</summary>
     abstract member HandleCollision : unit -> List<Entity>
     /// <summary>Convert the current object into a graphics primitive</summary>
-    /// <returns>A PrimitiveTree representing the current object.</returns>
+    /// <returns>A PrimitiveTree representing the current object, and a rotation axis to use.</returns>
     abstract member RenderInternal : unit -> (PrimitiveTree * vec)
 
+    /// <summary>Check if two objects collide</summary>
+    /// <param name="e1">The first object</param>
+    /// <param name="e2">The second object</param>
+    /// <returns>True if they collide, false otherwise</returns>
     static member CheckCollision (e1 : Entity) (e2 : Entity) : bool =
         let (ex, ey) = e1.Position
         let (ex', ey') = e2.Position
@@ -213,15 +223,10 @@ type Bullet(pos : vec, vel : vec) =
     inherit Entity(pos, add vel (multiply (unit vel) 20.0), 2.0)
     let _created = DateTime.Now
     member this.Created with get () = _created
-
-    /// <summary>Determine whether or not this bullet has exceeded its lifetime</summary>
-    /// <returns>True if the bullet was created more than two seconds ago.</returns>
     override this.ShouldDie () =
         (DateTime.Now - this.Created).Seconds >= 2
-
     override this.HandleCollision () : List<Entity> =
         []
-
     override this.RenderInternal () : (PrimitiveTree * vec) =
         ([(0.0,0.0);
         (10.0,0.0);
@@ -244,22 +249,34 @@ type Spaceship(pos : vec, orient : vec, acc : float) =
     override this.Direction 
         with get () = _orientation
         and set (value) = _orientation <- value
+    /// <summary>Rotates the spaceship's nose by 0.025 radians</summary>
+    /// <param name="r">Whether to rotate clockwise or counter clockwise</param>
     member this.Rotate (r : Rotation) =
         let radIncrement = 0.025
         match r with
             Clockwise -> this.Direction <- (vectorRotate this.Direction radIncrement)
             | _ -> this.Direction <- (vectorRotate this.Direction -radIncrement)
+    
+    /// <summary>
+    /// Use the current speed and orientation to create a Bullet object originating from the spaceships nose.
+    /// </summary>
     member this.MakeBullet () =
         let spaceshipTip = add this.Position (multiply (unit this.Direction) 30.0)
         if length this.Velocity <= 0 then
             new Bullet(spaceshipTip, this.Direction)
         else
             new Bullet(spaceshipTip, this.Velocity)
+
+    /// <summary>Accelerate the spaceship</summary>
+    /// <param name="interval">The interval in which we will accelerate, in seconds</param>
     member this.Accelerate (interval: float) =
         let maxVelocity = multiply (unit this.Direction) 20.0
         let deltaVelocity = multiply this.Direction (interval * _acceleration)
         let newVelocity = add this.Velocity deltaVelocity
         this.Velocity <- min maxVelocity newVelocity
+    
+    /// <summary>Decelerate the spaceship</summary>
+    /// <param name="interval">The interval in which we will brake, in seconds</param>
     member this.Brake (interval: float) =
         let minVelocity = (0.0, 0.0)
         let d = this.Direction
@@ -293,6 +310,8 @@ type GameState(dims : int * int, numInitialAsteroids: int, timesteps : float, em
             ()
         ss
 
+    /// <summary>Create an asteroid with a random position and velocity, not colliding with anything else</summary>
+    /// <returns>A randomly placed asteroid object</returns>
     let createRandomAsteroid () : Asteroid =
         let largestPossibleVector = (float (fst dims), float (snd dims))
         let mutable currentPosition = randVectorInLengthRange 0.0 (length largestPossibleVector)
@@ -317,6 +336,8 @@ type GameState(dims : int * int, numInitialAsteroids: int, timesteps : float, em
     member this.TimeStepSize : float = timesteps
     member this.Width : int = fst dims
     member this.Height : int = snd dims
+    /// <summary>Run the game!</summary>
+    /// <returns>An integer indicating whether or not an error occured (0 for success)</returns>
     member this.Run () : int =
         let mutable error = false
         let delay =
@@ -339,6 +360,7 @@ type GameState(dims : int * int, numInitialAsteroids: int, timesteps : float, em
         else
             0
 
+    /// <summary>Update the current game state</summary>
     member this.update () : unit =
         if (this.Entities |> List.filter (fun e -> (e.GetType() = typeof<Asteroid>))).Length <= 0 then
             raise (GameBreakException(true))
@@ -346,6 +368,7 @@ type GameState(dims : int * int, numInitialAsteroids: int, timesteps : float, em
             this.RemoveDeadEntities ()
             this.CheckCollisions ()
             this.AdvanceEntities ()
+    /// <summary>Check for collisions. This will remove colliding objects and add possible new ones (from the objects's collision handling methods)</summary>
     member this.CheckCollisions () =
         let mutable newEntities : Entity list = []
         let rec removeCollisions (entities : List<Entity>) : List<Entity> =
@@ -367,16 +390,24 @@ type GameState(dims : int * int, numInitialAsteroids: int, timesteps : float, em
                         removeCollisions (es |> List.filter (fun entity -> not (collisions |> List.contains entity)))
         this.Entities <- ((removeCollisions this.Entities) @ newEntities)
     
+    /// <summary>Remove entities that "ask" for it</summary>
     member this.RemoveDeadEntities () : unit = 
         this.Entities <- this.Entities |> List.filter (fun e -> not (e.ShouldDie ()))
+    /// <summary>Advance all entities by a single timestep.</summary>
     member this.AdvanceEntities () : unit =
         this.Entities |> List.iter (fun e -> e.Advance this.TimeStepSize (this.Width, this.Height))
+    /// <summary>Draw the current game state</summary>
+    /// <param name="state">The game state</param>
     static member Draw (state: GameState) : Picture =
         state.update ()
         (emptyTree, state.Entities)
         ||> List.fold (fun acc e -> acc |> onto ((e :> IRenderable).Render()))
         |> make
         
+    /// <summary>React to an event</summary>
+    /// <param name="state">The game-state</param>
+    /// <param name="event">The event</param>
+    /// <returns>Some state if it is to be redrawn, otherwise None</returns>
     static member React (state: GameState) (event: Event) : GameState option =
         match event with
             | TimerTick ->

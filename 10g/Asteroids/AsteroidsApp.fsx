@@ -6,19 +6,13 @@ open NUnit.Framework
 open FsUnit
 open System
 
-
-
 type CustomGameAssertions() =
     member this.ShouldBeCloseTo(value : float, expected, tolerance) =
         Assert.That(value, Is.InRange(expected - tolerance, expected + tolerance))
-
 let customAssertions = CustomGameAssertions()
-
-
 
 [<TestFixture>]
 type SpaceshipTests() =
-
     [<Test>]
     member this.SpaceshipInitialization() =
         let spaceship = new Spaceship((10.0, 10.0), (1.0, 0.0), 10.0)
@@ -29,7 +23,6 @@ type SpaceshipTests() =
         spaceship.Direction |> should equal (1.0,0.0)
         spaceship.Velocity |> should equal (0.0, 0.0)
         spaceship.Direction |> should equal parrallel
-
     [<Test>]
     member this.SpaceshipRotation() =
         let spaceship = new Spaceship((10.0, 10.0), (1.0, 0.0), 10.0)
@@ -38,7 +31,6 @@ type SpaceshipTests() =
         spaceship.Rotate CounterClockwise
         spaceship.Direction |> should equal (1.0, 0.0)
         spaceship.Velocity |> should equal (0.0, 0.0)
-        
     [<Test>]
     member this.SpaceshipAcceleration() =
         let spaceship = new Spaceship((10.0, 10.0), (1.0, 0.0), 10.0)
@@ -46,7 +38,6 @@ type SpaceshipTests() =
         Assert.True (spaceship.Velocity <> (0.0,0.0))
         spaceship.Brake 2.0
         spaceship.Velocity |> should equal (0.0, 0.0)
-
     [<Test>]
     member this.SpaceshipMaxVelocity() =
         let length a = sqrt ((fst a) ** 2.0 + (snd a) ** 2.0)
@@ -59,7 +50,6 @@ type SpaceshipTests() =
             spaceship.Accelerate 0.1
             vCurr <- spaceship.Velocity
         (length vCurr) |> should equal 20.0
-
     [<Test>]
     member this.SpaceshipCollision() =
         let spaceship = new Spaceship((10.0, 10.0), (1.0, 0.0), 5.0)
@@ -67,16 +57,12 @@ type SpaceshipTests() =
             ignore (spaceship.HandleCollision ())
             Assert.False (true)
         with GameBreakException e -> Assert.True (not e)
-
-
-
     [<Test>]
     member this.SpaceshipBullet() =
         let spaceship = new Spaceship((10.0, 10.0), (1.0, 0.0), 10.0)
         let bullet = spaceship.MakeBullet()
         bullet.Position |> should equal (40.0, 10.0)
         bullet.Velocity |> should equal (21.0, 0.0)
-
     [<Test>]
     member this.BulletFromMovingSpaceship() =
         let spaceship = new Spaceship((10.0,10.0), (1.0,0.0), 10.0)
@@ -86,10 +72,7 @@ type SpaceshipTests() =
         bullet.Position |> should equal (40.0, 10.0)
         bullet.Velocity |> should equal (30.0, 0.0)
 
-
-
 type EntityTests() =
-
     [<Test>]
     member this.NormalMovement() =
         let ss = new Spaceship((256.0,256.0), (5.0,5.0),0.14)
@@ -108,7 +91,6 @@ type EntityTests() =
             ss;
             new Bullet((510.0, 510.0), (5.0, 5.0))]
         Assert.True (entities |> List.forall (fun e -> this.hasNormalMovement e))
-
     member this.hasNormalMovement (entity : Entity) : bool =
         let position = entity.Position
         let velocity = entity.Velocity
@@ -119,8 +101,6 @@ type EntityTests() =
         entity.Position = (xExpected, yExpected)
 
 type AsteroidsTests() =
-
-
     [<Test>]
     member this.LegalVelocities() =
         let asteroid1 = new Asteroid((10.0, 10.0), (5.0, 5.0), 10.0)
@@ -133,10 +113,6 @@ type AsteroidsTests() =
         let asteroid = new Asteroid((20.0, 20.0), (-3.0, -3.0), 10.0)
 
         asteroid.Velocity |> should equal (-3.0, -3.0)
-
-
-
-
     [<Test>]
     member this.LargeAsteroidCollison() =
         let asteroid = new Asteroid((256.0,256.0), (1.0,1.0), 9.0)
@@ -146,7 +122,6 @@ type AsteroidsTests() =
             result.Length = 2 &&
             result.Head.Radius = 9.0 / 2.0 &&
             (result |> List.last).Radius = 9.0 / 2.0)
-    
     [<Test>]
     member this.SmallAsteroidCollision() =
         let asteroid = new Asteroid((256.0,256.0), (1.0,1.0), 8.0)
@@ -155,12 +130,10 @@ type AsteroidsTests() =
 
 
 type BulletTests() =
-
     [<Test>]
     member this.BulletCollision() =
         let bullet = new Bullet((100.0, 100.0), (5.0,5.0))
         (bullet.HandleCollision ()) |> should equal []
-
     [<Test>]
     member this.BulletLifespan() =
         let bullet = new Bullet((0.0,0.0), (0.0,0.0))
@@ -171,7 +144,6 @@ type BulletTests() =
         customAssertions.ShouldBeCloseTo (float (tEnd - start).TotalMilliseconds, 2000, 25)
     
 type GameStateTests() =
-    
     [<Test>]
     member this.TestGameInitialization() =
         let gamestate = new GameState((512,512), 10, 0.1, false)
@@ -180,7 +152,6 @@ type GameStateTests() =
         gamestate.Entities.Length |> should equal 11
         asteroids.Length |> should equal 10
         spaceships.Length |> should equal 1
-
     [<Test>]
     member this.TestGameStartNoCollisions() =
         let gamestate = new GameState((512,512), 10, 0.1, false)
@@ -188,9 +159,6 @@ type GameStateTests() =
         gamestate.CheckCollisions ()
         currentEntities |> should equal gamestate.Entities
         
-
-
-
 let runTests () =
     let mutable allTestsPassed = true
 
@@ -235,7 +203,6 @@ let runTests () =
         printfn "All tests passed."
     else
         printfn "Some tests failed."
-
 
 
 [<EntryPoint>]

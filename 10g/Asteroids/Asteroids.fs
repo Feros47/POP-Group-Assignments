@@ -71,6 +71,13 @@ let vectorRotate (v : vec) (rad : float) : vec =
 let dot ((x1,y1) : vec) ((x2,y2) : vec) : float =
     x1*x2 + y1*y2
 
+let randEntireRange (rng : Random) : int =
+    let sign = (rng.Next() % 2) = 0
+    if sign then
+        rng.Next()
+    else
+        -rng.Next()
+
 [<Interface>]
 type IRenderable =
     abstract member Render : unit -> PrimitiveTree
@@ -174,7 +181,7 @@ type Asteroid(pos : vec, vel : vec, r : float) =
     /// <returns>A vector to the new child's position</returns>
     member private this.findChildPosition (entities : List<Entity>) (dims : int * int) : vec =
         let randomUnitVector () : vec =
-            unit (float (_rng.Next ()), float (_rng.Next ()))
+            unit (float (randEntireRange (_rng)), float (randEntireRange (_rng)))
 
         let mutable childPosRelative = (multiply (randomUnitVector ()) this.Radius)
         let mutable child = new Asteroid(this.Position, childPosRelative, this.Radius / 2.0)
@@ -275,7 +282,7 @@ type Spaceship(pos : vec, orient : vec, acc : float) =
 
 [<Sealed>]
 type GameState(dims : int * int, timesteps : float) =
-    let mutable _entities : List<Entity> = List.empty//[new Asteroid((1.0,128.0), (30.0,30.0), 32.0)]
+    let mutable _entities : List<Entity> = [new Asteroid((1.0,128.0), (30.0,30.0), 32.0)]
     let _spaceship : Spaceship = 
         let ss = new Spaceship((256.0,256.0),(5.0,0.0),20.0)
         _entities <- ss :: _entities
@@ -311,7 +318,7 @@ type GameState(dims : int * int, timesteps : float) =
             0
     member this.CheckCollisions () =
         let mutable newEntities : Entity list = []
-        let rec removeCollisions (entities : List<Entity>) =
+        let rec removeCollisions (entities : List<Entity>) : List<Entity> =
             match entities with
                 | [] -> []
                 | e::es ->
@@ -324,14 +331,10 @@ type GameState(dims : int * int, timesteps : float) =
                             ] |> List.concat)
                             [e;e']
                         | false -> [])
-                        (*match Entity.CheckCollision e e' with
-                        | Some (type1, type2) when type1 <> typeof<Spaceship> && type2 <> typeof<Spaceship> -> //[e; e']
-                            
-                            List.concat ([e.HandleCollision entities (this.Width, this.Height); e'.HandleCollision entities (this.Width, this.Height)])
-                        | Some (type1, type2) when type1 = typeof<Spaceship> || type2 = typeof<Spaceship>
-                            -> raise (GameBreakException(false))
-                        | _ -> [])*)
-                    removeCollisions (List.filter (fun e' -> not (List.contains e' collisions)) es)
+                    if not (collisions |> (List.contains e)) then
+                        e :: (removeCollisions (es |> List.filter (fun entity -> not (collisions |> List.contains entity))))
+                    else
+                        removeCollisions (es |> List.filter (fun entity -> not (collisions |> List.contains entity)))
         this.Entities <- removeCollisions this.Entities
     
     member this.RemoveDeadEntities () : unit = 

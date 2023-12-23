@@ -110,11 +110,9 @@ type BulletTests() =
     member this.BulletMovement() =
         let bullet = new Bullet((100.0, 100.0), (5.0, 5.0))
         let gameState = new GameState((512, 512), 0.1)
-        let mutable entities = gameState.Entities
-        entities <- [bullet]
-
+        gameState.Entities <- gameState.Entities @ [bullet]
         gameState.AdvanceEntities()
-
+        
         let (vx, vy) = bullet.Position
         customAssertions.ShouldBeCloseTo(vx, 105.0, 2.0)
         customAssertions.ShouldBeCloseTo(vy, 105.0, 2.0)

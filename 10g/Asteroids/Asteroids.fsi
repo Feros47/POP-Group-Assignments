@@ -54,7 +54,7 @@ type GameState =
     class
         new : (int*int) * float -> GameState
         member Run : unit -> int
-        member Entities : List<Entity>
+        member Entities : List<Entity> with get, set
         member Spaceship : Spaceship
 
         member AdvanceEntities : unit -> unit
